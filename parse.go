@@ -6,31 +6,37 @@ import (
 	"strconv"
 	"errors"
 	"os"
+	"bufio"
 )
 
-type ASTNode struct {
-	nodeType  string
-	intVal    int
-	floatVal  float64
-	symbolVal string
-	args      []*ASTNode
+type AST struct {
+	nodeType string
+	val      interface{}
+	children []*AST
 }
 
-func (n *ASTNode) traverse() {
-	if n.nodeType == "int" {
-		fmt.Print(n.intVal)
-	} else if n.nodeType == "float" {
-		fmt.Print(n.floatVal)
-	} else if n.nodeType == "symbol" {
-		fmt.Print(n.symbolVal)
-	}
+func (node *AST) String() string {
 
-	for _, arg := range n.args {
-		arg.traverse()
+	switch node.nodeType {
+
+	case "int":
+		return fmt.Sprintf(" (%v, int) ", node.val.(int))
+	case "float":
+		return fmt.Sprintf(" (%v, float) ",node.val.(float64))
+	case "string":
+		return fmt.Sprintf(" (%v, string) ", node.val.(string))
+	case "expression":
+		result := ""
+		for _, arg := range node.children {
+			result += arg.String()
+		}
+		return result
+	default:
+		return "nothing"
 	}
 }
 
-func Parse(program string) (*ASTNode, error) {
+func Parse(program string) (*AST, error) {
 	tokens, _, err := readFromTokens(tokenize(program))
 
 	if err != nil {
@@ -38,6 +44,31 @@ func Parse(program string) (*ASTNode, error) {
 	}
 
 	return tokens, nil
+}
+
+func Eval(node *AST, env *Env) interface{} {
+
+	switch node.nodeType {
+
+	case "symbol":
+		return (*env)[node.val.(string)]
+
+	case "int", "float":
+		return node.val
+
+	case "expression":
+		fn := Eval(node.children[0], env).(func (int, int) int)
+		initial := Eval(node.children[1], env).(int)
+
+		for i := 2; i < len(node.children); i++ {
+			next := Eval(node.children[i], env).(int)
+			initial = fn(initial, next)
+		}
+		return initial
+
+	default:
+		return nil
+	}
 }
 
 func tokenize(program string) []string {
@@ -49,15 +80,18 @@ func tokenize(program string) []string {
 	return strings.Fields(program)
 }
 
-func readFromTokens(tokens []string) (*ASTNode, []string, error) {
+func readFromTokens(tokens []string) (*AST, []string, error) {
 
 	if len(tokens) == 0 {
-		return &ASTNode{}, nil, errors.New("Unexpected EOF while parsing")
+		return &AST{}, nil, errors.New("Unexpected EOF while parsing")
 	}
 
+	// pop the first token off
 	token, tokens := tokens[0], tokens[1:]
+
 	if token == "(" {
-		root := new(ASTNode)
+		root := new(AST)
+		root.nodeType = "expression"
 
 		for len(tokens) > 0 && tokens[0] != ")" {
 			args, newTokens, err := readFromTokens(tokens)
@@ -66,7 +100,7 @@ func readFromTokens(tokens []string) (*ASTNode, []string, error) {
 				return root, tokens, err
 			}
 
-			root.args = append(root.args, args)
+			root.children = append(root.children, args)
 		}
 
 		if len(tokens) == 0 {
@@ -84,31 +118,47 @@ func readFromTokens(tokens []string) (*ASTNode, []string, error) {
 	}
 }
 
-func atom(value string) *ASTNode {
+func atom(value string) *AST {
+
+	node := AST{}
 
 	intVal, err := strconv.Atoi(value)
 	if err == nil {
-		return &ASTNode{nodeType:"int", intVal:intVal}
+		node.val = intVal
+		node.nodeType = "int"
+		return &node
 	}
 
 	floatVal, err := strconv.ParseFloat(value, 64)
 	if err == nil {
-		return &ASTNode{nodeType:"float", floatVal:floatVal}
+		node.val = floatVal
+		node.nodeType = "float"
+		return &node
 	}
 
-	fmt.Println("getting the symbol", value)
-	return &ASTNode{nodeType:"symbol", symbolVal:value}
+	node.val = value
+	node.nodeType = "symbol"
+	return &node
+}
+
+func Repl() {
+	for {
+		reader := bufio.NewReader(os.Stdin)
+		program, _ := reader.ReadString('\n')
+
+		exp, err := Parse(program)
+		env := NewEnv()
+		result := Eval(exp, env)
+		fmt.Println(result)
+		//fmt.Println(exp)
+
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(0)
+		}
+	}
 }
 
 func main() {
-
-	expression, err := Parse("(+ 1 2")
-
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
-	}
-
-	expression.traverse()
-
+	Repl()
 }
