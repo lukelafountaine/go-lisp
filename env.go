@@ -1,24 +1,61 @@
 package main
 
-import (
-	"math"
-)
-
-type Symbol struct {
-	nodeType string
-	val      interface{}
+type symbols map[Symbol]Expression
+type Env struct {
+	symbols
+	outer   *Env
 }
 
-type Env map[string]interface{}
+func add(args... Expression) Expression {
+
+	initial := args[0].(Number)
+	for _, num := range args[1:] {
+		initial += num.(Number)
+	}
+
+	return initial
+}
+
+func sub(args... Expression) Expression {
+
+	initial := args[0].(Number)
+	for _, num := range args[1:] {
+		initial -= num.(Number)
+	}
+
+	return initial
+}
+
+func mult(args... Expression) Expression {
+
+	initial := args[0].(Number)
+	for _, num := range args[1:] {
+		initial *= num.(Number)
+	}
+
+	return initial
+}
+
+func div(args... Expression) Expression {
+
+	initial := args[0].(Number)
+	for _, num := range args[1:] {
+		initial /= num.(Number)
+	}
+
+	return initial
+}
 
 func NewEnv() *Env {
-	env := Env {
-		"x" : 5,
-		"abs" : math.Abs,
-		"+" : func (a, b int) int {return a + b},
-		"-" : func (a, b int) int {return a - b},
-		"/" : func (a, b int) int {return a / b},
-		"*" : func (a, b int) int {return a * b},
+
+	env := Env{
+		symbols{
+			"+" : add,
+			"-" : sub,
+			"*" : mult,
+			"/" : div,
+		},
+		nil,
 	}
 
 	return &env

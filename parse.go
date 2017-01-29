@@ -4,161 +4,99 @@ import (
 	"fmt"
 	"strings"
 	"strconv"
-	"errors"
-	"os"
-	"bufio"
+	"reflect"
 )
 
-type AST struct {
-	nodeType string
-	val      interface{}
-	children []*AST
+type Expression interface{}
+type Symbol string
+type Number float64
+
+func Parse(program string) Expression {
+	tokens := tokenize(program)
+	tree := readFromTokens(&tokens)
+	return tree
 }
 
-func (node *AST) String() string {
-
-	switch node.nodeType {
-
-	case "int":
-		return fmt.Sprintf(" (%v, int) ", node.val.(int))
-	case "float":
-		return fmt.Sprintf(" (%v, float) ",node.val.(float64))
-	case "string":
-		return fmt.Sprintf(" (%v, string) ", node.val.(string))
-	case "expression":
-		result := ""
-		for _, arg := range node.children {
-			result += arg.String()
-		}
-		return result
-	default:
-		return "nothing"
-	}
-}
-
-func Parse(program string) (*AST, error) {
-	tokens, _, err := readFromTokens(tokenize(program))
-
-	if err != nil {
-		return tokens, err
-	}
-
-	return tokens, nil
-}
-
-func Eval(node *AST, env *Env) interface{} {
-
-	switch node.nodeType {
-
-	case "symbol":
-		return (*env)[node.val.(string)]
-
-	case "int", "float":
-		return node.val
-
-	case "expression":
-		fn := Eval(node.children[0], env).(func (int, int) int)
-		initial := Eval(node.children[1], env).(int)
-
-		for i := 2; i < len(node.children); i++ {
-			next := Eval(node.children[i], env).(int)
-			initial = fn(initial, next)
-		}
-		return initial
-
-	default:
-		return nil
-	}
-}
 
 func tokenize(program string) []string {
 
 	// add spaces to make the program splittable on whitespace
-	program = strings.Replace(program, ")", " ) ", len(program))
-	program = strings.Replace(program, "(", " ( ", len(program))
+	program = strings.Replace(program, ")", " ) ", -1)
+	program = strings.Replace(program, "(", " ( ", -1)
 
 	return strings.Fields(program)
 }
 
-func readFromTokens(tokens []string) (*AST, []string, error) {
+func Eval(exp Expression, env *Env) Expression {
 
-	if len(tokens) == 0 {
-		return &AST{}, nil, errors.New("Unexpected EOF while parsing")
+	switch val := exp.(type) {
+
+	case Number:
+		return val
+
+	case Symbol:
+		return env.symbols[Symbol(val)]
+
+	case []Expression:
+
+		operands := val[1:]
+		values := make([]Expression, len(operands))
+
+		// evaluate the operands
+		for i, op := range operands {
+			values[i] = Eval(op, env)
+		}
+
+		fn := (*env).symbols[val[0].(Symbol)].(func (...Expression) Expression)
+		return fn(values...)
+
+	default:
+		fmt.Println("Unknown Type: ", reflect.TypeOf(val))
 	}
+
+	return nil
+}
+
+func readFromTokens(tokens *[]string) Expression {
 
 	// pop the first token off
-	token, tokens := tokens[0], tokens[1:]
+	token := (*tokens)[0]
+	(*tokens) = (*tokens)[1:]
 
-	if token == "(" {
-		root := new(AST)
-		root.nodeType = "expression"
+	switch token {
 
-		for len(tokens) > 0 && tokens[0] != ")" {
-			args, newTokens, err := readFromTokens(tokens)
-			tokens = newTokens
-			if err != nil {
-				return root, tokens, err
+	case "(":
+
+		L := make([]Expression, 0)
+
+		for (*tokens)[0] != ")" {
+
+			if i := readFromTokens(tokens); i != "" {
+				L = append(L, i)
 			}
-
-			root.children = append(root.children, args)
 		}
 
-		if len(tokens) == 0 {
-			return nil, nil, errors.New("Unexpected EOF while parsing")
-		}
+		// pop off the closing paren
+		*tokens = (*tokens)[1:]
+		return L
 
-		tokens = tokens[1:]
-		return root, tokens, nil
+	case ")":
+		fmt.Println("Syntax Error")
 
-	} else if token == ")" {
-		return nil, tokens, errors.New("Unexpected ')' while parsing")
+	default:
+		return atom(token)
 
-	} else {
-		return atom(token), tokens, nil
 	}
+
+	return nil
 }
 
-func atom(value string) *AST {
+func atom(value string) interface{} {
 
-	node := AST{}
-
-	intVal, err := strconv.Atoi(value)
+	num, err := strconv.ParseFloat(value, 64)
 	if err == nil {
-		node.val = intVal
-		node.nodeType = "int"
-		return &node
+		return Number(num)
 	}
 
-	floatVal, err := strconv.ParseFloat(value, 64)
-	if err == nil {
-		node.val = floatVal
-		node.nodeType = "float"
-		return &node
-	}
-
-	node.val = value
-	node.nodeType = "symbol"
-	return &node
-}
-
-func Repl() {
-	for {
-		reader := bufio.NewReader(os.Stdin)
-		program, _ := reader.ReadString('\n')
-
-		exp, err := Parse(program)
-		env := NewEnv()
-		result := Eval(exp, env)
-		fmt.Println(result)
-		//fmt.Println(exp)
-
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(0)
-		}
-	}
-}
-
-func main() {
-	Repl()
+	return Symbol(value)
 }
