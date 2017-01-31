@@ -46,6 +46,26 @@ func div(args... Expression) Expression {
 	return initial
 }
 
+func lt(args... Expression) Expression {
+	return args[0].(Number) < args[1].(Number)
+}
+
+func lte(args... Expression) Expression {
+	return args[0].(Number) <= args[1].(Number)
+}
+
+func gt(args... Expression) Expression {
+	return args[0].(Number) > args[1].(Number)
+}
+
+func gte(args... Expression) Expression {
+	return args[0].(Number) >= args[1].(Number)
+}
+
+func equals(args... Expression) Expression {
+	return args[0].(Number) == args[1].(Number)
+}
+
 func NewEnv() *Env {
 
 	env := Env{
@@ -54,6 +74,11 @@ func NewEnv() *Env {
 			"-" : sub,
 			"*" : mult,
 			"/" : div,
+			"<" : lt,
+			"<=" : lte,
+			">" : gt,
+			">=" :gte,
+			"==": equals,
 		},
 		nil,
 	}

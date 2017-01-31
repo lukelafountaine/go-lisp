@@ -4,19 +4,21 @@ import (
 	"fmt"
 	"strings"
 	"strconv"
-	"reflect"
+	"errors"
 )
 
 type Expression interface{}
 type Symbol string
 type Number float64
-
-func Parse(program string) Expression {
-	tokens := tokenize(program)
-	tree := readFromTokens(&tokens)
-	return tree
+type Function struct {
+	params, body Expression
+	env          *Env
 }
 
+func Parse(program string) (Expression, error) {
+	tokens := tokenize(program)
+	return readFromTokens(&tokens)
+}
 
 func tokenize(program string) []string {
 
@@ -27,27 +29,67 @@ func tokenize(program string) []string {
 	return strings.Fields(program)
 }
 
-func Eval(exp Expression, env *Env) Expression {
+func getSymbol(symbol Symbol, env *Env) Expression {
+
+	if val, ok := env.symbols[symbol]; ok {
+		return val
+	}
+
+	if env.outer != nil {
+		return getSymbol(symbol, env.outer)
+	}
+
+	return nil
+}
+
+func Eval(exp Expression, env *Env) (Expression, error) {
 
 	switch val := exp.(type) {
 
 	case Number:
-		return val
+		return val, nil
 
 	case Symbol:
-		return env.symbols[Symbol(val)]
+		return getSymbol(Symbol(val), env), nil
 
 	case []Expression:
 
 		switch start := val[0].(Symbol); start {
 
+		case "if":
+			if len(val) != 4 {
+				return nil, errors.New("Syntax Error: Wrong number of arguments to 'if'")
+			}
+
+			condition, err := Eval(val[1], env)
+
+			if err != nil {
+				return nil, err
+			}
+
+			consequence := val[2]
+			alternative := val[3]
+
+			if condition.(bool) {
+				return Eval(consequence, env)
+			} else {
+				return Eval(alternative, env)
+			}
+
+		case "lambda":
+			return Function{val[1], val[2], env}, nil
+
 		case "define":
-			if len(val) < 3 {
-				fmt.Println("Syntax Error: Wrong number of arguments to 'define'")
+			if len(val) != 3 {
+				return nil, errors.New("Syntax Error: Wrong number of arguments to 'define'")
 			}
 
 			key := val[1].(Symbol)
-			value := val[2]
+			value, err := Eval(val[2], env)
+
+			if err != nil {
+				return nil, err
+			}
 
 			env.symbols[key] = value
 
@@ -55,24 +97,84 @@ func Eval(exp Expression, env *Env) Expression {
 			operands := val[1:]
 			values := make([]Expression, len(operands))
 
+			var err error
 			// evaluate the operands
 			for i, op := range operands {
-				values[i] = Eval(op, env)
+
+				values[i], err = Eval(op, env)
+
+				if err != nil {
+					return nil, err
+				}
 			}
 
-			fn := (*env).symbols[val[0].(Symbol)].(func (...Expression) Expression)
-			return fn(values...)
+			// get the function from the name
+			fn, err := Eval(val[0], env)
+			if err != nil {
+				return nil, err
+			}
+
+			// evaluate the function
+			return apply(fn, values), nil
 		}
 
 
 	default:
-		fmt.Println("Unknown Type: ", reflect.TypeOf(val))
+		return nil, errors.New("Unknown Type")
 	}
 
-	return nil
+	return nil, nil
 }
 
-func readFromTokens(tokens *[]string) Expression {
+func apply(fn Expression, args []Expression) (value Expression) {
+
+	value = nil
+
+	switch f := fn.(type) {
+
+	case func(...Expression) Expression:
+		return f(args...)
+
+	case Function:
+
+		// make new environment with outer scope
+		scope := &Env{make(symbols), f.env}
+
+		switch params := f.params.(type) {
+
+		case []Expression:
+			for i, key := range params {
+
+				value, err := Eval(args[i], f.env)
+
+				if err != nil {
+					fmt.Println(err)
+				}
+
+				scope.symbols[key.(Symbol)] = value
+			}
+
+			result, err := Eval(f.body, scope)
+
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			return result
+
+		default:
+			scope.symbols[params.(Symbol)] = args
+			value = nil
+		}
+
+	default:
+		value = nil
+	}
+
+	return value
+}
+
+func readFromTokens(tokens *[]string) (Expression, error) {
 
 	// pop the first token off
 	token := (*tokens)[0]
@@ -86,24 +188,26 @@ func readFromTokens(tokens *[]string) Expression {
 
 		for (*tokens)[0] != ")" {
 
-			if i := readFromTokens(tokens); i != "" {
+			i, err := readFromTokens(tokens);
+
+			if err != nil {
+				return L, err
+			} else if i != "" {
 				L = append(L, i)
 			}
 		}
 
 		// pop off the closing paren
 		*tokens = (*tokens)[1:]
-		return L
+		return L, nil
 
 	case ")":
-		fmt.Println("Syntax Error")
+		return nil, errors.New("Syntax Error: Unexpected ')")
 
 	default:
-		return atom(token)
+		return atom(token), nil
 
 	}
-
-	return nil
 }
 
 func atom(value string) interface{} {

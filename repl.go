@@ -13,11 +13,23 @@ func Repl() {
 		reader := bufio.NewReader(os.Stdin)
 		program, _ := reader.ReadString('\n')
 
-		exp := Parse(program)
-		result := Eval(exp, scope)
+		exp, err := Parse(program)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
 
-		fmt.Println(result)
+		result, err := Eval(exp, scope)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
 
+		if result != nil {
+			fmt.Println(result)
+		} else {
+			fmt.Println("ok.")
+		}
 	}
 }
 
