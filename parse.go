@@ -16,6 +16,7 @@ type Function struct {
 }
 
 func Parse(program string) (Expression, error) {
+	program = "(begin" + program + ")"
 	tokens := tokenize(program)
 	return readFromTokens(&tokens)
 }
@@ -55,6 +56,19 @@ func Eval(exp Expression, env *Env) (Expression, error) {
 	case []Expression:
 
 		switch start := val[0].(Symbol); start {
+
+		case "begin":
+
+			var value Expression
+			var err error
+			for _, i := range val[1:] {
+				value, err = Eval(i, env)
+
+				if err != nil {
+					return nil, err
+				}
+			}
+			return value, err
 
 		case "if":
 			if len(val) != 4 {
