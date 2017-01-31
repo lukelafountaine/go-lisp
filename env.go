@@ -66,6 +66,28 @@ func equals(args... Expression) Expression {
 	return args[0].(Number) == args[1].(Number)
 }
 
+func max(args...Expression) Expression {
+	biggest := args[0].(Number)
+
+	for _, num := range args {
+		if num.(Number) > biggest {
+			biggest = num.(Number)
+		}
+	}
+	return biggest
+}
+
+func min(args...Expression) Expression {
+	smallest := args[0].(Number)
+
+	for _, num := range args {
+		if num.(Number) < smallest {
+			smallest = num.(Number)
+		}
+	}
+	return smallest
+}
+
 func NewEnv() *Env {
 
 	env := Env{
@@ -79,6 +101,8 @@ func NewEnv() *Env {
 			">" : gt,
 			">=" :gte,
 			"==": equals,
+			"max": max,
+			"min": min,
 		},
 		nil,
 	}

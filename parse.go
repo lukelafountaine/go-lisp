@@ -200,7 +200,7 @@ func readFromTokens(tokens *[]string) (Expression, error) {
 
 		L := make([]Expression, 0)
 
-		for (*tokens)[0] != ")" {
+		for len(*tokens) > 0 && (*tokens)[0] != ")" {
 
 			i, err := readFromTokens(tokens);
 
@@ -209,6 +209,10 @@ func readFromTokens(tokens *[]string) (Expression, error) {
 			} else if i != "" {
 				L = append(L, i)
 			}
+		}
+
+		if len(*tokens) == 0 {
+			return nil, errors.New("Syntax Error: Missing closing parenthesis")
 		}
 
 		// pop off the closing paren
@@ -233,3 +237,5 @@ func atom(value string) interface{} {
 
 	return Symbol(value)
 }
+
+
