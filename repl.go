@@ -7,12 +7,13 @@ import (
 )
 
 func Repl() {
+
+	scope := NewEnv()
 	for {
 		reader := bufio.NewReader(os.Stdin)
 		program, _ := reader.ReadString('\n')
 
 		exp := Parse(program)
-		scope := NewEnv()
 		result := Eval(exp, scope)
 
 		fmt.Println(result)

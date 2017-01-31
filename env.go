@@ -3,7 +3,7 @@ package main
 type symbols map[Symbol]Expression
 type Env struct {
 	symbols
-	outer   *Env
+	outer *Env
 }
 
 func add(args... Expression) Expression {

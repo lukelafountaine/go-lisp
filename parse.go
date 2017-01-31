@@ -39,16 +39,31 @@ func Eval(exp Expression, env *Env) Expression {
 
 	case []Expression:
 
-		operands := val[1:]
-		values := make([]Expression, len(operands))
+		switch start := val[0].(Symbol); start {
 
-		// evaluate the operands
-		for i, op := range operands {
-			values[i] = Eval(op, env)
+		case "define":
+			if len(val) < 3 {
+				fmt.Println("Syntax Error: Wrong number of arguments to 'define'")
+			}
+
+			key := val[1].(Symbol)
+			value := val[2]
+
+			env.symbols[key] = value
+
+		default:
+			operands := val[1:]
+			values := make([]Expression, len(operands))
+
+			// evaluate the operands
+			for i, op := range operands {
+				values[i] = Eval(op, env)
+			}
+
+			fn := (*env).symbols[val[0].(Symbol)].(func (...Expression) Expression)
+			return fn(values...)
 		}
 
-		fn := (*env).symbols[val[0].(Symbol)].(func (...Expression) Expression)
-		return fn(values...)
 
 	default:
 		fmt.Println("Unknown Type: ", reflect.TypeOf(val))
