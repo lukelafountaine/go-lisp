@@ -74,6 +74,18 @@ func equals(args... Expression) Expression {
 	return args[0].(Number) == args[1].(Number)
 }
 
+func and(args... Expression) Expression {
+	return args[0].(bool) && args[1].(bool)
+}
+
+func or(args... Expression) Expression {
+	return args[0].(bool) || args[1].(bool)
+}
+
+func not(args... Expression) Expression {
+	return !args[0].(bool)
+}
+
 func max(args...Expression) Expression {
 	biggest := args[0].(Number)
 
@@ -98,7 +110,6 @@ func min(args...Expression) Expression {
 
 // global scope
 func NewEnv() *Env {
-
 	env := Env{
 		map[Symbol]Expression{
 			"+" : add,
@@ -110,6 +121,9 @@ func NewEnv() *Env {
 			">" : gt,
 			">=" :gte,
 			"==": equals,
+			"&&" : and,
+			"||" : or,
+			"!" : not,
 			"max": max,
 			"min": min,
 		},

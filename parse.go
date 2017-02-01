@@ -7,7 +7,6 @@ import (
 	"errors"
 )
 
-
 func Parse(program string) (Expression, error) {
 	// add 'begin' so it evaluates all expressions
 	program = "(begin" + program + ")"
@@ -25,11 +24,61 @@ func tokenize(program string) []string {
 	return strings.Fields(program)
 }
 
-func getSymbol(symbol Symbol, env *Env) Expression {
+func readFromTokens(tokens *[]string) (Expression, error) {
+
+	// pop the first token off
+	token := (*tokens)[0]
+	(*tokens) = (*tokens)[1:]
+
+	switch token {
+
+	case "(":
+
+		L := make([]Expression, 0)
+
+		for len(*tokens) > 0 && (*tokens)[0] != ")" {
+
+			i, err := readFromTokens(tokens);
+
+			if err != nil {
+				return L, err
+			} else if i != "" {
+				L = append(L, i)
+			}
+		}
+
+		if len(*tokens) == 0 {
+			return nil, errors.New("Syntax Error: Missing closing parenthesis")
+		}
+
+		// pop off the closing paren
+		*tokens = (*tokens)[1:]
+		return L, nil
+
+	case ")":
+		return nil, errors.New("Syntax Error: Unexpected ')")
+
+	default:
+		return atom(token), nil
+
+	}
+}
+
+func atom(value string) interface{} {
+
+	num, err := strconv.ParseFloat(value, 64)
+	if err == nil {
+		return Number(num)
+	}
+
+	return Symbol(value)
+}
+
+func getSymbol(symbol Symbol, env *Env) (Expression, error) {
 
 	// get the symbol value if its there
 	if val, ok := env.symbols[symbol]; ok {
-		return val
+		return val, nil
 	}
 
 	// otherwise check the next scope
@@ -37,18 +86,20 @@ func getSymbol(symbol Symbol, env *Env) Expression {
 		return getSymbol(symbol, env.outer)
 	}
 
-	return nil
+	// otherwise the symbol is not found
+	return nil, errors.New("'" + string(symbol) + "' is not defined")
 }
 
 func Eval(exp Expression, env *Env) (Expression, error) {
 
 	switch val := exp.(type) {
 
+	// the
 	case Number:
 		return val, nil
 
 	case Symbol:
-		return getSymbol(Symbol(val), env), nil
+		return getSymbol(Symbol(val), env)
 
 	case []Expression:
 
@@ -184,54 +235,4 @@ func apply(fn Expression, args []Expression) (value Expression) {
 	}
 
 	return value
-}
-
-func readFromTokens(tokens *[]string) (Expression, error) {
-
-	// pop the first token off
-	token := (*tokens)[0]
-	(*tokens) = (*tokens)[1:]
-
-	switch token {
-
-	case "(":
-
-		L := make([]Expression, 0)
-
-		for len(*tokens) > 0 && (*tokens)[0] != ")" {
-
-			i, err := readFromTokens(tokens);
-
-			if err != nil {
-				return L, err
-			} else if i != "" {
-				L = append(L, i)
-			}
-		}
-
-		if len(*tokens) == 0 {
-			return nil, errors.New("Syntax Error: Missing closing parenthesis")
-		}
-
-		// pop off the closing paren
-		*tokens = (*tokens)[1:]
-		return L, nil
-
-	case ")":
-		return nil, errors.New("Syntax Error: Unexpected ')")
-
-	default:
-		return atom(token), nil
-
-	}
-}
-
-func atom(value string) interface{} {
-
-	num, err := strconv.ParseFloat(value, 64)
-	if err == nil {
-		return Number(num)
-	}
-
-	return Symbol(value)
 }
