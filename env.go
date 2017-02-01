@@ -10,10 +10,19 @@ type Function struct {
 }
 type Env struct {
 	symbols map[Symbol]Expression
-	outer *Env
+	outer   *Env
 }
 
 // built in functions
+func abs(args... Expression) Expression {
+	num := args[0].(Number)
+
+	if num < 0 {
+		num *= -1
+	}
+	return num
+}
+
 func add(args... Expression) Expression {
 
 	initial := args[0].(Number)
@@ -52,6 +61,13 @@ func div(args... Expression) Expression {
 	}
 
 	return initial
+}
+
+func mod(args... Expression) Expression {
+
+	a := int(args[0].(Number) / 1)
+	b := int(args[1].(Number) / 1)
+	return Number(a % b)
 }
 
 func lt(args... Expression) Expression {
@@ -112,10 +128,12 @@ func min(args...Expression) Expression {
 func NewEnv() *Env {
 	env := Env{
 		map[Symbol]Expression{
+			"abs": abs,
 			"+" : add,
 			"-" : sub,
 			"*" : mult,
 			"/" : div,
+			"%" : mod,
 			"<" : lt,
 			"<=" : lte,
 			">" : gt,

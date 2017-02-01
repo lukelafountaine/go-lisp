@@ -5,6 +5,7 @@ import (
 	"strings"
 	"strconv"
 	"errors"
+	"reflect"
 )
 
 func Parse(program string) (Expression, error) {
@@ -94,7 +95,6 @@ func Eval(exp Expression, env *Env) (Expression, error) {
 
 	switch val := exp.(type) {
 
-	// the
 	case Number:
 		return val, nil
 
@@ -183,6 +183,7 @@ func Eval(exp Expression, env *Env) (Expression, error) {
 
 
 	default:
+		fmt.Println(reflect.TypeOf(val))
 		return nil, errors.New("Unknown Type")
 	}
 
