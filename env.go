@@ -64,10 +64,7 @@ func div(args... Expression) Expression {
 }
 
 func mod(args... Expression) Expression {
-
-	a := int(args[0].(Number) / 1)
-	b := int(args[1].(Number) / 1)
-	return Number(a % b)
+	return Number(int(args[0].(Number) / 1) % int(args[1].(Number) / 1))
 }
 
 func lt(args... Expression) Expression {

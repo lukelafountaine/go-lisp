@@ -5,7 +5,6 @@ import (
 	"strings"
 	"strconv"
 	"errors"
-	"reflect"
 )
 
 func Parse(program string) (Expression, error) {
@@ -155,6 +154,7 @@ func Eval(exp Expression, env *Env) (Expression, error) {
 			}
 
 			env.symbols[key] = value
+			return nil, nil
 
 		default:
 			operands := val[1:]
@@ -183,11 +183,8 @@ func Eval(exp Expression, env *Env) (Expression, error) {
 
 
 	default:
-		fmt.Println(reflect.TypeOf(val))
-		return nil, errors.New("Unknown Type")
+		return nil, errors.New(fmt.Sprintf("Unknown Type: %T", val))
 	}
-
-	return nil, nil
 }
 
 func apply(fn Expression, args []Expression) (value Expression) {
