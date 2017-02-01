@@ -1,5 +1,10 @@
 package main
 
+import (
+	"fmt"
+	"errors"
+)
+
 // types
 type Expression interface{}
 type Symbol string
@@ -11,6 +16,32 @@ type Function struct {
 type Env struct {
 	symbols map[Symbol]Expression
 	outer   *Env
+}
+
+// type check for functions that expect arguments of type Number
+func numberType(f func(...Expression) Expression) func(...Expression) (Expression, error) {
+
+	return func(args...Expression) (Expression, error) {
+		for _, arg := range args {
+			if _, ok := arg.(Number); !ok {
+				return nil, errors.New(fmt.Sprintf("Type Error: Recieved %T, Expected Number", arg))
+			}
+		}
+		return f(args...), nil
+	}
+}
+
+// type check for functions that expect arguments of type Boolean
+func boolType(f func(...Expression) Expression) func(...Expression) (Expression, error) {
+
+	return func(args...Expression) (Expression, error) {
+		for _, arg := range args {
+			if _, ok := arg.(bool); !ok {
+				return nil, errors.New(fmt.Sprintf("Type Error: Recieved %T, Expected Boolean", arg))
+			}
+		}
+		return f(args...), nil
+	}
 }
 
 // built in functions
@@ -123,24 +154,24 @@ func min(args...Expression) Expression {
 
 // global scope
 func NewEnv() *Env {
-	env := Env{
-		map[Symbol]Expression{
-			"abs": abs,
-			"+" : add,
-			"-" : sub,
-			"*" : mult,
-			"/" : div,
-			"%" : mod,
-			"<" : lt,
-			"<=" : lte,
-			">" : gt,
-			">=" :gte,
-			"==": equals,
-			"&&" : and,
-			"||" : or,
-			"!" : not,
-			"max": max,
-			"min": min,
+	env := Env {
+		map[Symbol]Expression {
+			"abs": numberType(abs),
+			"+" : numberType(add),
+			"-" : numberType(sub),
+			"*" : numberType(mult),
+			"/" : numberType(div),
+			"%" : numberType(mod),
+			"max": numberType(max),
+			"min": numberType(min),
+			"<" : numberType(lt),
+			"<=" : numberType(lte),
+			">" : numberType(gt),
+			">=" : numberType(gte),
+			"==": numberType(equals),
+			"&&" : boolType(and),
+			"||" : boolType(or),
+			"!" : boolType(not),
 		},
 		nil,
 	}

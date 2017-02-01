@@ -35,9 +35,17 @@ func Run(program string, scope *Env) {
 func Repl(scope *Env) {
 
 	scanner := bufio.NewScanner(os.Stdin)
+	var program string
 
 	for fmt.Print("> "); scanner.Scan(); fmt.Print("> ") {
-		Run(scanner.Text(), scope)
+
+		program = scanner.Text()
+		if program == "exit" {
+			fmt.Println("bye!")
+			os.Exit(0)
+		}
+
+		Run(program, scope)
 	}
 }
 

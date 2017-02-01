@@ -75,22 +75,6 @@ func atom(value string) interface{} {
 	return Symbol(value)
 }
 
-func getSymbol(symbol Symbol, env *Env) (Expression, error) {
-
-	// get the symbol value if its there
-	if val, ok := env.symbols[symbol]; ok {
-		return val, nil
-	}
-
-	// otherwise check the next scope
-	if env.outer != nil {
-		return getSymbol(symbol, env.outer)
-	}
-
-	// otherwise the symbol is not found
-	return nil, errors.New("'" + string(symbol) + "' is not defined")
-}
-
 func Eval(exp Expression, env *Env) (Expression, error) {
 
 	switch val := exp.(type) {
@@ -179,7 +163,8 @@ func Eval(exp Expression, env *Env) (Expression, error) {
 			}
 
 			// evaluate the function
-			return apply(fn, values), nil
+
+			return apply(fn, values)
 		}
 
 
@@ -188,14 +173,34 @@ func Eval(exp Expression, env *Env) (Expression, error) {
 	}
 }
 
-func apply(fn Expression, args []Expression) (value Expression) {
+func getSymbol(symbol Symbol, env *Env) (Expression, error) {
+
+	// get the symbol value if its there
+	if val, ok := env.symbols[symbol]; ok {
+		return val, nil
+	}
+
+	// otherwise check the next scope
+	if env.outer != nil {
+		return getSymbol(symbol, env.outer)
+	}
+
+	// otherwise the symbol is not found
+	return nil, errors.New("'" + string(symbol) + "' is not defined")
+}
+
+func apply(fn Expression, args []Expression) (value Expression, err error) {
 
 	value = nil
+	err = nil
 
 	switch f := fn.(type) {
 
-	case func(...Expression) Expression:
+	case func(...Expression) (Expression, error):
 		return f(args...)
+
+	case func(...Expression) Expression:
+		return f(args...), err
 
 	case Function:
 
@@ -216,13 +221,7 @@ func apply(fn Expression, args []Expression) (value Expression) {
 				scope.symbols[key.(Symbol)] = value
 			}
 
-			result, err := Eval(f.body, scope)
-
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			return result
+			return Eval(f.body, scope)
 
 		default:
 			scope.symbols[params.(Symbol)] = args
@@ -233,5 +232,5 @@ func apply(fn Expression, args []Expression) (value Expression) {
 		value = nil
 	}
 
-	return value
+	return value, err
 }
