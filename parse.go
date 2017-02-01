@@ -17,6 +17,7 @@ func Parse(program string) (Expression, error) {
 func tokenize(program string) []string {
 
 	// add spaces to make the program splittable on whitespace
+	program = strings.Replace(program, "\n", " ", -1)
 	program = strings.Replace(program, ")", " ) ", -1)
 	program = strings.Replace(program, "(", " ( ", -1)
 
