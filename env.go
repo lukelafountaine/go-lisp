@@ -1,11 +1,19 @@
 package main
 
-type symbols map[Symbol]Expression
+// types
+type Expression interface{}
+type Symbol string
+type Number float64
+type Function struct {
+	params, body Expression
+	env          *Env
+}
 type Env struct {
-	symbols
+	symbols map[Symbol]Expression
 	outer *Env
 }
 
+// built in functions
 func add(args... Expression) Expression {
 
 	initial := args[0].(Number)
@@ -88,10 +96,11 @@ func min(args...Expression) Expression {
 	return smallest
 }
 
+// global scope
 func NewEnv() *Env {
 
 	env := Env{
-		symbols{
+		map[Symbol]Expression{
 			"+" : add,
 			"-" : sub,
 			"*" : mult,
@@ -106,6 +115,5 @@ func NewEnv() *Env {
 		},
 		nil,
 	}
-
 	return &env
 }

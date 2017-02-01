@@ -7,15 +7,9 @@ import (
 	"errors"
 )
 
-type Expression interface{}
-type Symbol string
-type Number float64
-type Function struct {
-	params, body Expression
-	env          *Env
-}
 
 func Parse(program string) (Expression, error) {
+	// add 'begin' so it evaluates all expressions
 	program = "(begin" + program + ")"
 	tokens := tokenize(program)
 	return readFromTokens(&tokens)
@@ -27,15 +21,18 @@ func tokenize(program string) []string {
 	program = strings.Replace(program, ")", " ) ", -1)
 	program = strings.Replace(program, "(", " ( ", -1)
 
+	// break on all whitespace
 	return strings.Fields(program)
 }
 
 func getSymbol(symbol Symbol, env *Env) Expression {
 
+	// get the symbol value if its there
 	if val, ok := env.symbols[symbol]; ok {
 		return val
 	}
 
+	// otherwise check the next scope
 	if env.outer != nil {
 		return getSymbol(symbol, env.outer)
 	}
@@ -55,7 +52,8 @@ func Eval(exp Expression, env *Env) (Expression, error) {
 
 	case []Expression:
 
-		switch start := val[0].(Symbol); start {
+		// switch on the first word
+		switch val[0].(Symbol) {
 
 		case "begin":
 
@@ -152,7 +150,7 @@ func apply(fn Expression, args []Expression) (value Expression) {
 	case Function:
 
 		// make new environment with outer scope
-		scope := &Env{make(symbols), f.env}
+		scope := &Env{make(map[Symbol]Expression), f.env}
 
 		switch params := f.params.(type) {
 
@@ -237,5 +235,3 @@ func atom(value string) interface{} {
 
 	return Symbol(value)
 }
-
-
