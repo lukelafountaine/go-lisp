@@ -168,7 +168,7 @@ func NewEnv() *Env {
 			"<=" : numberType(lte),
 			">" : numberType(gt),
 			">=" : numberType(gte),
-			"==": numberType(equals),
+			"=": numberType(equals),
 			"&&" : boolType(and),
 			"||" : boolType(or),
 			"!" : boolType(not),
