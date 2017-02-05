@@ -242,12 +242,11 @@ func apply(fn Expression, args []Expression) (value Expression, err error) {
 
 	switch f := fn.(type) {
 
+	// built in functions
 	case func(...Expression) (Expression, error):
 		return f(args...)
 
-	case func(...Expression) Expression:
-		return f(args...), err
-
+	// user defined functions
 	case Function:
 
 		// make new environment with outer scope
