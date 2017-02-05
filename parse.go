@@ -77,18 +77,22 @@ func atom(value string) interface{} {
 
 func Eval(exp Expression, env *Env) (Expression, error) {
 
-	//TODO come up with a more descriptive variable name for val
-	switch val := exp.(type) {
+	switch exp := exp.(type) {
 
-	case Number:
-		return val, nil
+	case Number, Function:
+		return exp, nil
 
 	case Symbol:
-		return getSymbol(Symbol(val), env)
+		return getSymbol(Symbol(exp), env)
 
 	case []Expression:
 
-		switch t := val[0].(type) {
+		// make sure we have something look at
+		if len(exp) == 0 {
+			return nil, nil
+		}
+
+		switch t := exp[0].(type) {
 
 		// switch on the first word
 		case Symbol:
@@ -96,19 +100,19 @@ func Eval(exp Expression, env *Env) (Expression, error) {
 			switch t {
 
 			case "quote":
-				return val[1:], nil
+				return exp[1:], nil
 
 			case "set!":
-				if len(val) != 3 {
+				if len(exp) != 3 {
 					return nil, errors.New("Syntax Error: Wrong number of arguments to 'set!'")
 				}
 
-				key := val[1].(Symbol)
+				key := exp[1].(Symbol)
 				if _, ok := (*env).symbols[key]; !ok {
 					return nil, errors.New(fmt.Sprintf("Symbol '%s' not defined", key))
 				}
 
-				value, err := Eval(val[2], env)
+				value, err := Eval(exp[2], env)
 				if err != nil {
 					return nil, err
 				}
@@ -121,7 +125,7 @@ func Eval(exp Expression, env *Env) (Expression, error) {
 
 				var value Expression
 				var err error
-				for _, i := range val[1:] {
+				for _, i := range exp[1:] {
 					value, err = Eval(i, env)
 
 					if err != nil {
@@ -131,18 +135,18 @@ func Eval(exp Expression, env *Env) (Expression, error) {
 				return value, err
 
 			case "if":
-				if len(val) != 4 {
+				if len(exp) != 4 {
 					return nil, errors.New("Syntax Error: Wrong number of arguments to 'if'")
 				}
 
-				condition, err := Eval(val[1], env)
+				condition, err := Eval(exp[1], env)
 
 				if err != nil {
 					return nil, err
 				}
 
-				consequence := val[2]
-				alternative := val[3]
+				consequence := exp[2]
+				alternative := exp[3]
 
 				if condition.(bool) {
 					return Eval(consequence, env)
@@ -151,15 +155,15 @@ func Eval(exp Expression, env *Env) (Expression, error) {
 				}
 
 			case "lambda":
-				return Function{val[1], val[2], env}, nil
+				return Function{exp[1], exp[2], env}, nil
 
 			case "define":
-				if len(val) != 3 {
+				if len(exp) != 3 {
 					return nil, errors.New("Syntax Error: Wrong number of arguments to 'define'")
 				}
 
-				key := val[1].(Symbol)
-				value, err := Eval(val[2], env)
+				key := exp[1].(Symbol)
+				value, err := Eval(exp[2], env)
 
 				if err != nil {
 					return nil, err
@@ -168,11 +172,13 @@ func Eval(exp Expression, env *Env) (Expression, error) {
 				env.symbols[key] = value
 				return nil, nil
 
+			// the default case is that it is a user defined function call
 			default:
-				operands := val[1:]
+				operands := exp[1:]
 				values := make([]Expression, len(operands))
 
 				var err error
+
 				// evaluate the operands
 				for i, op := range operands {
 
@@ -184,7 +190,7 @@ func Eval(exp Expression, env *Env) (Expression, error) {
 				}
 
 				// get the function from the name
-				fn, err := Eval(val[0], env)
+				fn, err := Eval(exp[0], env)
 				if err != nil {
 					return nil, err
 				}
@@ -192,14 +198,22 @@ func Eval(exp Expression, env *Env) (Expression, error) {
 				// evaluate the function
 				return apply(fn, values)
 
+
 			}
 
-		case []Expression:
-			fmt.Println("i think its a function literal")
+		// the default is that the first elemet in the list is a function literal
+		default:
+			fn, err := Eval(t, env)
+
+			if err != nil {
+				return nil, err
+			}
+
+			return apply(fn, exp[1:])
 		}
 
 	default:
-		return nil, errors.New(fmt.Sprintf("Unknown Type: %T", val))
+		return nil, errors.New(fmt.Sprintf("Unknown Type: %T for var %s", exp, exp))
 	}
 
 	return nil, nil
