@@ -7,6 +7,19 @@ import (
 	"errors"
 )
 
+// types
+type Expression interface{}
+type Symbol string
+type Number float64
+type Function struct {
+	params, body Expression
+	env          *Scope
+}
+type Scope struct {
+	symbols map[Symbol]Expression
+	outer   *Scope
+}
+
 func Parse(program string) (Expression, error) {
 	// add 'begin' so it evaluates all expressions
 	//program = "(begin" + program + ")"
@@ -75,7 +88,7 @@ func atom(value string) interface{} {
 	return Symbol(value)
 }
 
-func Eval(exp Expression, env *Env) (Expression, error) {
+func Eval(exp Expression, env *Scope) (Expression, error) {
 
 	switch exp := exp.(type) {
 
@@ -219,7 +232,7 @@ func Eval(exp Expression, env *Env) (Expression, error) {
 	return nil, nil
 }
 
-func getSymbol(symbol Symbol, env *Env) (Expression, error) {
+func getSymbol(symbol Symbol, env *Scope) (Expression, error) {
 
 	// get the symbol value if its there
 	if val, ok := env.symbols[symbol]; ok {
@@ -250,7 +263,7 @@ func apply(fn Expression, args []Expression) (value Expression, err error) {
 	case Function:
 
 		// make new environment with outer scope
-		scope := &Env{make(map[Symbol]Expression), f.env}
+		scope := &Scope{make(map[Symbol]Expression), f.env}
 
 		switch params := f.params.(type) {
 

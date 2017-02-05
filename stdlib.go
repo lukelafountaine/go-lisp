@@ -5,19 +5,6 @@ import (
 	"errors"
 )
 
-// types
-type Expression interface{}
-type Symbol string
-type Number float64
-type Function struct {
-	params, body Expression
-	env          *Env
-}
-type Env struct {
-	symbols map[Symbol]Expression
-	outer   *Env
-}
-
 // type check for functions that expect arguments of type Number
 func numberType(f func(...Expression) Expression) func(...Expression) (Expression, error) {
 
@@ -153,8 +140,8 @@ func min(args...Expression) Expression {
 }
 
 // global scope
-func NewEnv() *Env {
-	env := Env {
+func NewEnv() *Scope {
+	env := Scope{
 		map[Symbol]Expression {
 			"abs": numberType(abs),
 			"+" : numberType(add),

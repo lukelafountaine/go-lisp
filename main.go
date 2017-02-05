@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 )
 
-func Run(program string, scope *Env) {
+func Run(program string, scope *Scope) {
 
 	// read
 	exp, err := Parse(program)
@@ -32,7 +32,7 @@ func Run(program string, scope *Env) {
 	}
 }
 
-func Repl(scope *Env) {
+func Repl(scope *Scope) {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	var program string
