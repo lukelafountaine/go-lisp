@@ -9,7 +9,7 @@ import (
 
 func Parse(program string) (Expression, error) {
 	// add 'begin' so it evaluates all expressions
-	program = "(begin" + program + ")"
+	//program = "(begin" + program + ")"
 	tokens := tokenize(program)
 	return readFromTokens(&tokens)
 }
@@ -77,6 +77,7 @@ func atom(value string) interface{} {
 
 func Eval(exp Expression, env *Env) (Expression, error) {
 
+	//TODO come up with a more descriptive variable name for val
 	switch val := exp.(type) {
 
 	case Number:
@@ -93,6 +94,28 @@ func Eval(exp Expression, env *Env) (Expression, error) {
 		case Symbol:
 
 			switch t {
+
+			case "quote":
+				return val[1:], nil
+
+			case "set!":
+				if len(val) != 3 {
+					return nil, errors.New("Syntax Error: Wrong number of arguments to 'set!'")
+				}
+
+				key := val[1].(Symbol)
+				if _, ok := (*env).symbols[key]; !ok {
+					return nil, errors.New(fmt.Sprintf("Symbol '%s' not defined", key))
+				}
+
+				value, err := Eval(val[2], env)
+				if err != nil {
+					return nil, err
+				}
+
+				env.symbols[key] = value
+				return nil, nil
+
 
 			case "begin":
 
@@ -168,9 +191,11 @@ func Eval(exp Expression, env *Env) (Expression, error) {
 
 				// evaluate the function
 				return apply(fn, values)
-			
+
 			}
-		
+
+		case []Expression:
+			fmt.Println("i think its a function literal")
 		}
 
 	default:
