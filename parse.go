@@ -40,6 +40,10 @@ func tokenize(program string) []string {
 
 func readFromTokens(tokens *[]string) (Expression, error) {
 
+	if len(*tokens) == 0 {
+		return nil, errors.New("Unexpected EOF while reading")
+	}
+
 	// pop the first token off
 	token := (*tokens)[0]
 	(*tokens) = (*tokens)[1:]
@@ -120,12 +124,17 @@ func Eval(exp Expression, env *Scope) (Expression, error) {
 					return nil, errors.New("Syntax Error: Wrong number of arguments to 'set!'")
 				}
 
-				key := exp[1].(Symbol)
-				if _, ok := (*env).symbols[key]; !ok {
-					return nil, errors.New(fmt.Sprintf("Symbol '%s' not defined", key))
+				key, ok := exp[1].(Symbol)
+				if !ok {
+					return nil, errors.New("Syntax Error: Cannot assign to a literal")
 				}
 
-				value, err := Eval(exp[2], env)
+				value, err := getSymbol(key, env)
+				if err != nil {
+					return nil, err
+				}
+
+				value, err = Eval(value, env)
 				if err != nil {
 					return nil, err
 				}
@@ -175,7 +184,11 @@ func Eval(exp Expression, env *Scope) (Expression, error) {
 					return nil, errors.New("Syntax Error: Wrong number of arguments to 'define'")
 				}
 
-				key := exp[1].(Symbol)
+				key, ok := exp[1].(Symbol)
+				if !ok {
+					return nil, errors.New("Syntax Error: Cannot assign to a literal")
+				}
+
 				value, err := Eval(exp[2], env)
 
 				if err != nil {
@@ -208,13 +221,11 @@ func Eval(exp Expression, env *Scope) (Expression, error) {
 					return nil, err
 				}
 
-				// evaluate the function
+				// apply the function
 				return apply(fn, values)
-
-
 			}
 
-		// the default is that the first elemet in the list is a function literal
+		// the default is that the first element in the list is a function literal
 		default:
 			fn, err := Eval(t, env)
 
@@ -228,8 +239,6 @@ func Eval(exp Expression, env *Scope) (Expression, error) {
 	default:
 		return nil, errors.New(fmt.Sprintf("Unknown Type: %T for var %s", exp, exp))
 	}
-
-	return nil, nil
 }
 
 func getSymbol(symbol Symbol, env *Scope) (Expression, error) {
