@@ -5,6 +5,9 @@ import (
 	"strings"
 	"strconv"
 	"errors"
+	"bufio"
+	"os"
+	"io/ioutil"
 )
 
 // types
@@ -100,7 +103,13 @@ func Eval(exp Expression, env *Scope) (Expression, error) {
 		return exp, nil
 
 	case Symbol:
-		return getSymbol(Symbol(exp), env)
+		scope, err := getSymbol(Symbol(exp), env)
+
+		if err != nil {
+			return nil, err
+		}
+
+		return scope.symbols[Symbol(exp)], nil
 
 	case []Expression:
 
@@ -129,17 +138,17 @@ func Eval(exp Expression, env *Scope) (Expression, error) {
 					return nil, errors.New("Syntax Error: Cannot assign to a literal")
 				}
 
-				value, err := getSymbol(key, env)
+				scope, err := getSymbol(key, env)
 				if err != nil {
 					return nil, err
 				}
 
-				value, err = Eval(value, env)
+				value, err := Eval(exp[2], env)
 				if err != nil {
 					return nil, err
 				}
 
-				env.symbols[key] = value
+				scope.symbols[key] = value
 				return nil, nil
 
 
@@ -241,11 +250,11 @@ func Eval(exp Expression, env *Scope) (Expression, error) {
 	}
 }
 
-func getSymbol(symbol Symbol, env *Scope) (Expression, error) {
+func getSymbol(symbol Symbol, env *Scope) (*Scope, error) {
 
 	// get the symbol value if its there
-	if val, ok := env.symbols[symbol]; ok {
-		return val, nil
+	if _, ok := env.symbols[symbol]; ok {
+		return env, nil
 	}
 
 	// otherwise check the next scope
@@ -300,4 +309,62 @@ func apply(fn Expression, args []Expression) (value Expression, err error) {
 	}
 
 	return value, err
+}
+
+func Run(program string, scope *Scope) {
+
+	// read
+	exp, err := Parse(program)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// evaluate
+	result, err := Eval(exp, scope)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// print
+	if result != nil {
+		fmt.Println(result)
+	} else {
+		fmt.Println("ok.")
+	}
+}
+
+func Repl(scope *Scope) {
+
+	scanner := bufio.NewScanner(os.Stdin)
+	var program string
+
+	for fmt.Print("> "); scanner.Scan(); fmt.Print("> ") {
+
+		program = scanner.Text()
+		if program == "exit" {
+			fmt.Println("bye!")
+			os.Exit(0)
+		}
+
+		Run(program, scope)
+	}
+}
+
+func main() {
+
+	scope := NewEnv()
+	for _, file := range os.Args[1:] {
+		program, err := ioutil.ReadFile(file)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(0)
+		}
+
+		Run(string(program), scope)
+	}
+
+	Repl(scope)
 }
