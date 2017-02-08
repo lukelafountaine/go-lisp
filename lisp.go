@@ -297,12 +297,11 @@ func apply(fn Expression, args []Expression) (value Expression, err error) {
 				scope.symbols[key.(Symbol)] = value
 			}
 
-			return Eval(f.body, scope)
-
 		default:
 			scope.symbols[params.(Symbol)] = args
-			value = nil
 		}
+
+		value, err = Eval(f.body, scope)
 
 	default:
 		value = nil
