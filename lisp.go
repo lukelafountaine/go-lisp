@@ -277,6 +277,9 @@ func apply(fn Expression, args []Expression) (value Expression, err error) {
 	case func(...Expression) (Expression, error):
 		return f(args...)
 
+	case func(...Expression) Expression:
+		return f(args...), nil
+
 	// user defined functions
 	case Function:
 

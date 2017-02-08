@@ -139,10 +139,38 @@ func min(args...Expression) Expression {
 	return smallest
 }
 
+func car(args...Expression) Expression {
+	return args[0].([]Expression)[0]
+}
+
+func cdr(args...Expression) Expression {
+	return args[0].([]Expression)[1:]
+}
+
+func cons(args...Expression) Expression {
+	first := args[0]
+
+	switch rest := args[1].(type) {
+	case []Expression:
+		return append([]Expression{first}, rest...)
+	default:
+		return []Expression{first, rest}
+	}
+	return args[0].([]Expression)[1:]
+}
+
+func list(args...Expression) Expression {
+	result := make([]Expression, 0)
+	for _, arg := range args {
+		result = append(result, arg)
+	}
+	return result
+}
+
 // global scope
 func NewEnv() *Scope {
 	env := Scope{
-		map[Symbol]Expression {
+		map[Symbol]Expression{
 			"abs": numberType(abs),
 			"+" : numberType(add),
 			"-" : numberType(sub),
@@ -159,6 +187,10 @@ func NewEnv() *Scope {
 			"&&" : boolType(and),
 			"||" : boolType(or),
 			"!" : boolType(not),
+			"car": car,
+			"cdr" : cdr,
+			"cons" : cons,
+			"list" : list,
 		},
 		nil,
 	}
