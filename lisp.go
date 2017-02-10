@@ -25,7 +25,6 @@ type Scope struct {
 
 func Parse(program string) (Expression, error) {
 	// add 'begin' so it evaluates all expressions
-	//program = "(begin" + program + ")"
 	tokens := tokenize(program)
 	return readFromTokens(&tokens)
 }
@@ -178,8 +177,31 @@ func Eval(exp Expression, env *Scope) (Expression, error) {
 
 				consequence := exp[2]
 				alternative := exp[3]
+				result := false
 
-				if condition.(bool) {
+				switch condition := condition.(type) {
+				case bool:
+					if condition {
+						result = true
+					}
+
+				case Number:
+					if condition != 0 {
+						result  = true
+					}
+
+				case []Expression:
+					if len(condition) > 0 {
+						result = true
+					}
+
+				default:
+					if condition != nil {
+						result = true
+					}
+				}
+
+				if result {
 					return Eval(consequence, env)
 				} else {
 					return Eval(alternative, env)
@@ -307,6 +329,7 @@ func apply(fn Expression, args []Expression) (value Expression, err error) {
 		value, err = Eval(f.body, scope)
 
 	default:
+		fmt.Println(fn, "is not callable")
 		value = nil
 	}
 
@@ -370,3 +393,5 @@ func main() {
 
 	Repl(scope)
 }
+
+//(define count (lambda (x lst) (if lst (+ (if (= x (car lst)) 1 0) (count x (cdr lst))) 0)))
