@@ -98,9 +98,6 @@ func Eval(exp Expression, env *Scope) (Expression, error) {
 
 	switch exp := exp.(type) {
 
-	case Number, Function:
-		return exp, nil
-
 	case Symbol:
 		scope, err := getSymbol(Symbol(exp), env)
 
@@ -268,7 +265,7 @@ func Eval(exp Expression, env *Scope) (Expression, error) {
 		}
 
 	default:
-		return nil, errors.New(fmt.Sprintf("Unknown Type: %T for var %s", exp, exp))
+		return exp, nil
 	}
 }
 
