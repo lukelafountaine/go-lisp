@@ -98,6 +98,7 @@ func Eval(exp Expression, env *Scope) (Expression, error) {
 
 	switch exp := exp.(type) {
 
+	// variable reference
 	case Symbol:
 		scope, err := getSymbol(Symbol(exp), env)
 
@@ -231,7 +232,11 @@ func Eval(exp Expression, env *Scope) (Expression, error) {
 				operands := exp[1:]
 				values := make([]Expression, len(operands))
 
-				var err error
+				// get the function from the name
+				fn, err := Eval(exp[0], env)
+				if err != nil {
+					return nil, err
+				}
 
 				// evaluate the operands
 				for i, op := range operands {
@@ -241,12 +246,6 @@ func Eval(exp Expression, env *Scope) (Expression, error) {
 					if err != nil {
 						return nil, err
 					}
-				}
-
-				// get the function from the name
-				fn, err := Eval(exp[0], env)
-				if err != nil {
-					return nil, err
 				}
 
 				// apply the function
@@ -264,6 +263,7 @@ func Eval(exp Expression, env *Scope) (Expression, error) {
 			return apply(fn, exp[1:])
 		}
 
+	// constant literal
 	default:
 		return exp, nil
 	}
@@ -309,14 +309,7 @@ func apply(fn Expression, args []Expression) (value Expression, err error) {
 
 		case []Expression:
 			for i, key := range params {
-
-				value, err := Eval(args[i], f.env)
-
-				if err != nil {
-					fmt.Println(err)
-				}
-
-				scope.symbols[key.(Symbol)] = value
+				scope.symbols[key.(Symbol)] = args[i]
 			}
 
 		default:
@@ -392,3 +385,4 @@ func main() {
 }
 
 //(define count (lambda (x lst) (if lst (+ (if (= x (car lst)) 1 0) (count x (cdr lst))) 0)))
+//(count 1 (list 1 2 3 4))
