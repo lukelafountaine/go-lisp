@@ -89,7 +89,7 @@ func atom(value string) interface{} {
 	return Symbol(value)
 }
 
-func Eval(exp Expression, env *Scope) (Expression, error) {
+func Eval(exp Expression, env *Scope) (result Expression, err error) {
 
 	switch exp := exp.(type) {
 
@@ -98,16 +98,16 @@ func Eval(exp Expression, env *Scope) (Expression, error) {
 		scope, err := getSymbol(Symbol(exp), env)
 
 		if err != nil {
-			return nil, err
+			break
 		}
 
-		return scope.symbols[Symbol(exp)], nil
+		result = scope.symbols[Symbol(exp)]
 
 	case []Expression:
 
 		// make sure we have something look at
 		if len(exp) == 0 {
-			return nil, nil
+			break
 		}
 
 		switch t := exp[0].(type) {
@@ -118,109 +118,107 @@ func Eval(exp Expression, env *Scope) (Expression, error) {
 			switch t {
 
 			case "quote":
-				return exp[1], nil
+				result = exp[1]
 
 			case "set!":
 				if len(exp) != 3 {
-					return nil, errors.New("Syntax Error: Wrong number of arguments to 'set!'")
+					err = errors.New("Syntax Error: Wrong number of arguments to 'set!'")
+					break
 				}
 
 				key, ok := exp[1].(Symbol)
 				if !ok {
-					return nil, errors.New("Syntax Error: Cannot assign to a literal")
+					err = errors.New("Syntax Error: Cannot assign to a literal")
+					break
 				}
 
 				scope, err := getSymbol(key, env)
 				if err != nil {
-					return nil, err
+					break
 				}
 
 				value, err := Eval(exp[2], env)
 				if err != nil {
-					return nil, err
+					break
 				}
 
 				scope.symbols[key] = value
-				return nil, nil
-
 
 			case "begin":
-
-				var value Expression
-				var err error
 				for _, i := range exp[1:] {
-					value, err = Eval(i, env)
+					result, err = Eval(i, env)
 
 					if err != nil {
 						return nil, err
 					}
 				}
-				return value, err
 
 			case "if":
 				if len(exp) != 4 {
-					return nil, errors.New("Syntax Error: Wrong number of arguments to 'if'")
+					err = errors.New("Syntax Error: Wrong number of arguments to 'if'")
+					break
 				}
 
 				condition, err := Eval(exp[1], env)
 
 				if err != nil {
-					return nil, err
+					break
 				}
 
 				consequence := exp[2]
 				alternative := exp[3]
-				result := false
+				boolean := false
 
 				switch condition := condition.(type) {
 				case bool:
 					if condition {
-						result = true
+						boolean = true
 					}
 
 				case Number:
 					if condition != 0 {
-						result  = true
+						boolean  = true
 					}
 
 				case []Expression:
 					if len(condition) > 0 {
-						result = true
+						boolean = true
 					}
 
 				default:
 					if condition != nil {
-						result = true
+						boolean = true
 					}
 				}
 
-				if result {
-					return Eval(consequence, env)
+				if boolean {
+					result, err = Eval(consequence, env)
 				} else {
-					return Eval(alternative, env)
+					result, err = Eval(alternative, env)
 				}
 
 			case "lambda":
-				return Function{exp[1], exp[2], env}, nil
+				result = Function{exp[1], exp[2], env}
 
 			case "define":
 				if len(exp) != 3 {
-					return nil, errors.New("Syntax Error: Wrong number of arguments to 'define'")
+					err = errors.New("Syntax Error: Wrong number of arguments to 'define'")
+					break
 				}
 
 				key, ok := exp[1].(Symbol)
 				if !ok {
-					return nil, errors.New("Syntax Error: Cannot assign to a literal")
+					err = errors.New("Syntax Error: Cannot assign to a literal")
+					break
 				}
 
 				value, err := Eval(exp[2], env)
 
 				if err != nil {
-					return nil, err
+					break
 				}
 
 				env.symbols[key] = value
-				return nil, nil
 
 			// the default case is that it is a user defined function call
 			default:
@@ -244,12 +242,11 @@ func Eval(exp Expression, env *Scope) (Expression, error) {
 				}
 
 				// apply the function
-				return apply(fn, values)
+				result, err = apply(fn, operands)
 			}
 
-		// the default is that the first element in the list is a function literal
+		// otherwise its probably a function literal
 		default:
-			//TODO i think remove this default clause, i think its covered by the constant literal part below
 			fn, err := Eval(t, env)
 
 			if err != nil {
@@ -261,8 +258,10 @@ func Eval(exp Expression, env *Scope) (Expression, error) {
 
 	// constant literal
 	default:
-		return exp, nil
+		result = exp
 	}
+
+	return result, err
 }
 
 func getSymbol(symbol Symbol, env *Scope) (*Scope, error) {
