@@ -254,6 +254,7 @@ func Eval(exp Expression, env *Scope) (Expression, error) {
 
 		// the default is that the first element in the list is a function literal
 		default:
+			//TODO i think remove this default clause, i think its covered by the constant literal part below
 			fn, err := Eval(t, env)
 
 			if err != nil {
@@ -308,18 +309,27 @@ func apply(fn Expression, args []Expression) (value Expression, err error) {
 		switch params := f.params.(type) {
 
 		case []Expression:
+			if len(params) != len(args) {
+				value = nil
+				err = errors.New(fmt.Sprintf("Wrong number of arguments to function. Expecting %s, got %s", len(params), len(args)))
+			}
+
 			for i, key := range params {
 				scope.symbols[key.(Symbol)] = args[i]
 			}
 
 		default:
-			scope.symbols[params.(Symbol)] = args
+			if len(args) != 1 {
+				value = nil
+				err = errors.New(fmt.Sprintf("Wrong number of arguments to function. Expecting 1, got %s", len(args)))
+			}
+			scope.symbols[params.(Symbol)] = args[0]
 		}
 
 		value, err = Eval(f.body, scope)
 
 	default:
-		fmt.Println(fn, "is not callable")
+		err = errors.New(fmt.Sprintf("%s is not callable", fn))
 		value = nil
 	}
 
