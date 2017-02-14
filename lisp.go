@@ -351,31 +351,25 @@ func Run(program string, scope *Scope) {
 	// print
 	if result != nil {
 		fmt.Println(result)
-	} else {
-		fmt.Println("ok.")
 	}
 }
 
 func Repl(scope *Scope) {
-
 	scanner := bufio.NewScanner(os.Stdin)
-	var program string
-
 	for fmt.Print("> "); scanner.Scan(); fmt.Print("> ") {
-
-		program = scanner.Text()
-		if program == "exit" {
-			fmt.Println("bye!")
-			os.Exit(0)
-		}
-
-		Run(program, scope)
+		Run(scanner.Text(), scope)
 	}
 }
 
 func main() {
 
 	scope := NewEnv()
+
+	// load the standard library
+	program, _ := ioutil.ReadFile("stdlib.lisp")
+	Run(string(program), scope)
+
+	// evaluate any files provided
 	for _, file := range os.Args[1:] {
 		program, err := ioutil.ReadFile(file)
 		if err != nil {
