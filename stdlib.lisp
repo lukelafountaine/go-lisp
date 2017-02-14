@@ -10,6 +10,11 @@
             (filter fn (cdr lst)))
         (quote ()))))
 
+(define reduce (lambda (fn lst val)
+    (if lst
+        (reduce fn (cdr lst) (fn val (car lst)))
+        val)))
+
 (define range (lambda (a b)
     (if (= a b)
         (quote ())
