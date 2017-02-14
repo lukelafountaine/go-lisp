@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"errors"
+	"reflect"
 )
 
 // type check for functions that expect arguments of type Number
@@ -102,7 +103,12 @@ func gte(args... Expression) Expression {
 }
 
 func equals(args... Expression) Expression {
-	return args[0].(Number) == args[1].(Number)
+
+	if len(args) < 2 {
+		return true
+	}
+
+	return reflect.DeepEqual(args[0], args[1])
 }
 
 func and(args... Expression) Expression {
@@ -183,7 +189,7 @@ func NewEnv() *Scope {
 			"<=" : numberType(lte),
 			">" : numberType(gt),
 			">=" : numberType(gte),
-			"=": numberType(equals),
+			"=": equals,
 			"&&" : boolType(and),
 			"||" : boolType(or),
 			"!" : boolType(not),

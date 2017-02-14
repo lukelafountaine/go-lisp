@@ -25,7 +25,7 @@ type Scope struct {
 
 func Parse(program string) (Expression, error) {
 	// add 'begin' so it evaluates all expressions
-	tokens := tokenize(program)
+	tokens := tokenize("(begin " + program + ")")
 	return readFromTokens(&tokens)
 }
 
@@ -123,7 +123,7 @@ func Eval(exp Expression, env *Scope) (Expression, error) {
 			switch t {
 
 			case "quote":
-				return exp[1:], nil
+				return exp[1], nil
 
 			case "set!":
 				if len(exp) != 3 {
@@ -383,6 +383,3 @@ func main() {
 
 	Repl(scope)
 }
-
-//(define count (lambda (x lst) (if lst (+ (if (= x (car lst)) 1 0) (count x (cdr lst))) 0)))
-//(count 1 (list 1 2 3 4))
