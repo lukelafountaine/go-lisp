@@ -95,13 +95,12 @@ func Eval(exp Expression, env *Scope) (result Expression, err error) {
 
 	// variable reference
 	case Symbol:
-		scope, err := getSymbol(Symbol(exp), env)
+		var scope *Scope
+		scope, err = getSymbol(Symbol(exp), env)
 
-		if err != nil {
-			break
+		if err == nil {
+			result = scope.symbols[Symbol(exp)]
 		}
-
-		result = scope.symbols[Symbol(exp)]
 
 	case []Expression:
 
@@ -132,12 +131,14 @@ func Eval(exp Expression, env *Scope) (result Expression, err error) {
 					break
 				}
 
-				scope, err := getSymbol(key, env)
+				var scope *Scope
+				scope, err = getSymbol(key, env)
 				if err != nil {
 					break
 				}
 
-				value, err := Eval(exp[2], env)
+				var value Expression
+				value, err = Eval(exp[2], env)
 				if err != nil {
 					break
 				}
@@ -149,7 +150,7 @@ func Eval(exp Expression, env *Scope) (result Expression, err error) {
 					result, err = Eval(i, env)
 
 					if err != nil {
-						return nil, err
+						break
 					}
 				}
 
@@ -159,7 +160,8 @@ func Eval(exp Expression, env *Scope) (result Expression, err error) {
 					break
 				}
 
-				condition, err := Eval(exp[1], env)
+				var condition Expression
+				condition, err = Eval(exp[1], env)
 
 				if err != nil {
 					break
@@ -167,37 +169,41 @@ func Eval(exp Expression, env *Scope) (result Expression, err error) {
 
 				consequence := exp[2]
 				alternative := exp[3]
-				boolean := false
+				condResult := false
 
 				switch condition := condition.(type) {
 				case bool:
 					if condition {
-						boolean = true
+						condResult = true
 					}
 
 				case Number:
 					if condition != 0 {
-						boolean  = true
+						condResult = true
 					}
 
 				case []Expression:
 					if len(condition) > 0 {
-						boolean = true
+						condResult = true
 					}
 
 				default:
 					if condition != nil {
-						boolean = true
+						condResult = true
 					}
 				}
 
-				if boolean {
+				if condResult {
 					result, err = Eval(consequence, env)
 				} else {
 					result, err = Eval(alternative, env)
 				}
 
 			case "lambda":
+				if len(exp) != 3 {
+					err = errors.New("Syntax Error: Wrong number of arguments to 'lambda'")
+					break
+				}
 				result = Function{exp[1], exp[2], env}
 
 			case "define":
@@ -212,7 +218,8 @@ func Eval(exp Expression, env *Scope) (result Expression, err error) {
 					break
 				}
 
-				value, err := Eval(exp[2], env)
+				var value Expression
+				value, err = Eval(exp[2], env)
 
 				if err != nil {
 					break
@@ -220,40 +227,14 @@ func Eval(exp Expression, env *Scope) (result Expression, err error) {
 
 				env.symbols[key] = value
 
-			// the default case is that it is a user defined function call
+			// otherwise its a function
 			default:
-				operands := exp[1:]
-				values := make([]Expression, len(operands))
-
-				// get the function from the name
-				fn, err := Eval(exp[0], env)
-				if err != nil {
-					return nil, err
-				}
-
-				// evaluate the operands
-				for i, op := range operands {
-
-					values[i], err = Eval(op, env)
-
-					if err != nil {
-						return nil, err
-					}
-				}
-
-				// apply the function
-				result, err = apply(fn, operands)
+				result, err = applyFn(exp, env)
 			}
 
-		// otherwise its probably a function literal
+		// otherwise its *probably* a function literal
 		default:
-			fn, err := Eval(t, env)
-
-			if err != nil {
-				return nil, err
-			}
-
-			return apply(fn, exp[1:])
+			result, err = applyFn(exp, env)
 		}
 
 	// constant literal
@@ -280,19 +261,32 @@ func getSymbol(symbol Symbol, env *Scope) (*Scope, error) {
 	return nil, errors.New("'" + string(symbol) + "' is not defined")
 }
 
-func apply(fn Expression, args []Expression) (value Expression, err error) {
+func applyFn(fn []Expression, env *Scope) (result Expression, err error) {
 
-	value = nil
-	err = nil
+	args := fn[1:]
+	evaluated_args := make([]Expression, len(args))
 
-	switch f := fn.(type) {
+	// get the function body
+	var body Expression
+	body, err = Eval(fn[0], env)
+
+	// evaluate the arguments
+	for i, op := range args {
+		evaluated_args[i], err = Eval(op, env)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// call the function
+	switch f := body.(type) {
 
 	// built in functions
 	case func(...Expression) (Expression, error):
-		return f(args...)
+		result, err = f(evaluated_args...)
 
 	case func(...Expression) Expression:
-		return f(args...), nil
+		result = f(evaluated_args...)
 
 	// user defined functions
 	case Function:
@@ -303,31 +297,28 @@ func apply(fn Expression, args []Expression) (value Expression, err error) {
 		switch params := f.params.(type) {
 
 		case []Expression:
-			if len(params) != len(args) {
-				value = nil
+			if len(params) != len(evaluated_args) {
 				err = errors.New(fmt.Sprintf("Wrong number of arguments to function. Expecting %s, got %s", len(params), len(args)))
 			}
 
 			for i, key := range params {
-				scope.symbols[key.(Symbol)] = args[i]
+				scope.symbols[key.(Symbol)] = evaluated_args[i]
 			}
 
 		default:
-			if len(args) != 1 {
-				value = nil
-				err = errors.New(fmt.Sprintf("Wrong number of arguments to function. Expecting 1, got %s", len(args)))
+			if len(evaluated_args) != 1 {
+				err = errors.New(fmt.Sprintf("Wrong number of arguments to function. Expecting 1, got %s", len(evaluated_args)))
 			}
-			scope.symbols[params.(Symbol)] = args[0]
+			scope.symbols[params.(Symbol)] = evaluated_args[0]
 		}
 
-		value, err = Eval(f.body, scope)
+		result, err = Eval(f.body, scope)
 
 	default:
 		err = errors.New(fmt.Sprintf("%s is not callable", fn))
-		value = nil
 	}
 
-	return value, err
+	return result, err
 }
 
 func Run(program string, scope *Scope) {
