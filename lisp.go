@@ -30,14 +30,9 @@ func Parse(program string) (Expression, error) {
 }
 
 func tokenize(program string) []string {
-
 	// add spaces to make the program splittable on whitespace
-	program = strings.Replace(program, "\n", " ", -1)
-	program = strings.Replace(program, ")", " ) ", -1)
-	program = strings.Replace(program, "(", " ( ", -1)
-
-	// break on all whitespace
-	return strings.Fields(program)
+	replacer := strings.NewReplacer(")", " ) ", "(", " ( ", "\n", " ")
+	return strings.Fields(replacer.Replace(program))
 }
 
 func readFromTokens(tokens *[]string) (Expression, error) {
