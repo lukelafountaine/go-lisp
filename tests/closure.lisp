@@ -5,4 +5,4 @@
              balance))))
 
 (define account1 (make-account 100.00))
-(account1 -20.00)
+(= (account1 -20.00) 80)
