@@ -123,28 +123,6 @@ func not(args... Expression) Expression {
 	return !args[0].(bool)
 }
 
-func max(args...Expression) Expression {
-	biggest := args[0].(Number)
-
-	for _, num := range args {
-		if num.(Number) > biggest {
-			biggest = num.(Number)
-		}
-	}
-	return biggest
-}
-
-func min(args...Expression) Expression {
-	smallest := args[0].(Number)
-
-	for _, num := range args {
-		if num.(Number) < smallest {
-			smallest = num.(Number)
-		}
-	}
-	return smallest
-}
-
 func car(args...Expression) Expression {
 	return args[0].([]Expression)[0]
 }
@@ -157,12 +135,15 @@ func cons(args...Expression) Expression {
 	first := args[0]
 
 	switch rest := args[1].(type) {
+
+	// if the second arg is a list, then append it to the end of a new list
 	case []Expression:
 		return append([]Expression{first}, rest...)
+
+	// otherwise assume create a new list from the two
 	default:
 		return []Expression{first, rest}
 	}
-	return args[0].([]Expression)[1:]
 }
 
 func list(args...Expression) Expression {
@@ -183,8 +164,6 @@ func NewEnv() *Scope {
 			"*" : numberType(mult),
 			"/" : numberType(div),
 			"%" : numberType(mod),
-			"max": numberType(max),
-			"min": numberType(min),
 			"<" : numberType(lt),
 			"<=" : numberType(lte),
 			">" : numberType(gt),

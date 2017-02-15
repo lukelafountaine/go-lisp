@@ -10,6 +10,23 @@
             (filter fn (cdr lst)))
         (quote ()))))
 
+(define comparator (lambda fn
+    (lambda lst
+        (if lst
+            (begin
+                (define helper (lambda (big lst)
+                    (if lst
+                        (if (fn (car lst) big)
+                            (helper (car lst) (cdr lst))
+                            (helper big (cdr lst)))
+                        big)))
+                (helper (car lst) (cdr lst)))
+            (quote ())))))
+
+(define max (comparator >))
+
+(define min (comparator <))
+
 (define reduce (lambda (fn lst val)
     (if lst
         (reduce fn (cdr lst) (fn val (car lst)))
