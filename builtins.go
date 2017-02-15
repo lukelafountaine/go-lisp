@@ -32,16 +32,6 @@ func boolType(f func(...Expression) Expression) func(...Expression) (Expression,
 	}
 }
 
-// built in functions
-func abs(args... Expression) Expression {
-	num := args[0].(Number)
-
-	if num < 0 {
-		num *= -1
-	}
-	return num
-}
-
 func add(args... Expression) Expression {
 
 	initial := args[0].(Number)
@@ -90,16 +80,8 @@ func lt(args... Expression) Expression {
 	return args[0].(Number) < args[1].(Number)
 }
 
-func lte(args... Expression) Expression {
-	return args[0].(Number) <= args[1].(Number)
-}
-
 func gt(args... Expression) Expression {
 	return args[0].(Number) > args[1].(Number)
-}
-
-func gte(args... Expression) Expression {
-	return args[0].(Number) >= args[1].(Number)
 }
 
 func equals(args... Expression) Expression {
@@ -158,20 +140,17 @@ func list(args...Expression) Expression {
 func NewEnv() *Scope {
 	env := Scope{
 		map[Symbol]Expression{
-			"abs": numberType(abs),
 			"+" : numberType(add),
 			"-" : numberType(sub),
 			"*" : numberType(mult),
 			"/" : numberType(div),
 			"%" : numberType(mod),
 			"<" : numberType(lt),
-			"<=" : numberType(lte),
 			">" : numberType(gt),
-			">=" : numberType(gte),
 			"=": equals,
-			"&&" : boolType(and),
-			"||" : boolType(or),
-			"!" : boolType(not),
+			"and" : boolType(and),
+			"or" : boolType(or),
+			"not" : boolType(not),
 			"car": car,
 			"cdr" : cdr,
 			"cons" : cons,

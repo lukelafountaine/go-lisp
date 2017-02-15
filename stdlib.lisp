@@ -1,14 +1,17 @@
-(define map (lambda (fn lst)
-    (if lst
-        (cons (fn (car lst)) (map fn (cdr lst)))
-        (quote ()))))
+(define <= (lambda (x y)
+    (or
+        (< x y)
+        (= x y))))
 
-(define filter (lambda (fn lst)
-    (if lst
-        (if (fn (car lst))
-            (cons (car lst) (filter fn (cdr lst)))
-            (filter fn (cdr lst)))
-        (quote ()))))
+(define >= (lambda (x y)
+    (or
+        (> x y)
+        (= x y))))
+
+(define abs (lambda x
+        (if (< x 0)
+            (* -1 x)
+            x)))
 
 (define comparator (lambda fn
     (lambda lst
@@ -26,6 +29,18 @@
 (define max (comparator >))
 
 (define min (comparator <))
+
+(define map (lambda (fn lst)
+    (if lst
+        (cons (fn (car lst)) (map fn (cdr lst)))
+        (quote ()))))
+
+(define filter (lambda (fn lst)
+    (if lst
+        (if (fn (car lst))
+            (cons (car lst) (filter fn (cdr lst)))
+            (filter fn (cdr lst)))
+        (quote ()))))
 
 (define reduce (lambda (fn lst val)
     (if lst
