@@ -85,11 +85,9 @@ func gt(args... Expression) Expression {
 }
 
 func equals(args... Expression) Expression {
-
 	if len(args) < 2 {
 		return true
 	}
-
 	return reflect.DeepEqual(args[0], args[1])
 }
 

@@ -53,7 +53,7 @@ func readFromTokens(tokens *[]string) (Expression, error) {
 
 		for len(*tokens) > 0 && (*tokens)[0] != ")" {
 
-			i, err := readFromTokens(tokens);
+			i, err := readFromTokens(tokens)
 
 			if err != nil {
 				return L, err
@@ -75,11 +75,18 @@ func readFromTokens(tokens *[]string) (Expression, error) {
 
 	default:
 		return atom(token), nil
-
 	}
 }
 
 func atom(value string) interface{} {
+
+	if value == "#t" {
+		return true
+	}
+
+	if value == "#f" {
+		return false
+	}
 
 	num, err := strconv.ParseFloat(value, 64)
 	if err == nil {

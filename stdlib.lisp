@@ -62,13 +62,13 @@
         1
         (* x (fact (- x 1))))))
 
-(define count (lambda (item L)
-    (if L
-        (+ (if (= item (car L)) 1 0) (count item (cdr L)))
+(define count (lambda (item lst)
+    (if lst
+        (+ (if (= item (car lst)) 1 0) (count item (cdr lst)))
         0)))
 
 (define gcd (lambda (a b)
-    (if (|| (< a 0) (< b 0))
+    (if (or (< a 0) (< b 0))
         ((gcd (abs a) (abs b)))
         (if (< a b)
             (gcd b a)
