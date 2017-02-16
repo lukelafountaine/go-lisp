@@ -30,6 +30,35 @@
 
 (define min (comparator <))
 
+(define merge (lambda (l1 l2)
+    (if l1
+        (if l2
+            (if (< (car l1) (car l2))
+                (cons (car l1) (merge (cdr l1) l2))
+                (cons (car l2) (merge (cdr l2) l1)))
+            l1)
+        l2)))
+
+(define every-other (lambda (lst num)
+    (if lst
+        (if (= (% num 2) 0)
+            (cons (car lst) (every-other (cdr lst) (+ num 1)))
+            (every-other (cdr lst) (+ num 1)))
+        (quote ()))))
+
+(define evens (lambda lst
+    (every-other lst 0)))
+
+(define odds (lambda lst
+    (every-other lst 1)))
+
+(define sort (lambda lst
+    (if lst
+        (if (cdr lst)
+            (merge (sort (evens lst)) (sort (odds lst)))
+            lst)
+        lst)))
+
 (define map (lambda (fn lst)
     (if lst
         (cons (fn (car lst)) (map fn (cdr lst)))
