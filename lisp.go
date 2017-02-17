@@ -2,17 +2,19 @@ package main
 
 import (
 	"fmt"
-	"strings"
 	"strconv"
 	"errors"
 	"bufio"
 	"os"
 	"io/ioutil"
+
+	"./lex"
 )
 
 // types
 type Expression interface{}
 type Symbol string
+type String string
 type Number float64
 type Function struct {
 	params, body Expression
@@ -26,16 +28,15 @@ type Scope struct {
 func Parse(program string) (Expression, error) {
 	// add 'begin' so it evaluates all expressions
 	tokens := tokenize("(begin " + program + ")")
-	return readFromTokens(&tokens)
+	return readFromTokens(tokens)
 }
 
-func tokenize(program string) []string {
-	// add spaces to make the program splittable on whitespace
-	replacer := strings.NewReplacer(")", " ) ", "(", " ( ", "\n", " ")
-	return strings.Fields(replacer.Replace(program))
+func tokenize(program string) *[]lex.Token {
+	scanner := lex.NewScanner(program)
+	return lex.Scan(scanner)
 }
 
-func readFromTokens(tokens *[]string) (Expression, error) {
+func readFromTokens(tokens *[]lex.Token) (Expression, error) {
 
 	if len(*tokens) == 0 {
 		return nil, errors.New("Unexpected EOF while reading")
@@ -45,13 +46,13 @@ func readFromTokens(tokens *[]string) (Expression, error) {
 	token := (*tokens)[0]
 	(*tokens) = (*tokens)[1:]
 
-	switch token {
+	switch token.Type {
 
-	case "(":
+	case lex.OpenParen:
 
 		L := make([]Expression, 0)
 
-		for len(*tokens) > 0 && (*tokens)[0] != ")" {
+		for len(*tokens) > 0 && (*tokens)[0].Type != lex.CloseParen {
 
 			i, err := readFromTokens(tokens)
 
@@ -70,7 +71,7 @@ func readFromTokens(tokens *[]string) (Expression, error) {
 		*tokens = (*tokens)[1:]
 		return L, nil
 
-	case ")":
+	case lex.CloseParen:
 		return nil, errors.New("Syntax Error: Unexpected ')")
 
 	default:
@@ -78,22 +79,26 @@ func readFromTokens(tokens *[]string) (Expression, error) {
 	}
 }
 
-func atom(value string) interface{} {
+func atom(token lex.Token) interface{} {
 
-	if value == "#t" {
-		return true
+	switch token.Type {
+	case lex.NumberLiteral:
+		num, err := strconv.ParseFloat(token.Text, 64)
+		if err == nil {
+			return Number(num)
+		}
+		return nil
+	default:
+		if token.Text == "#t" {
+			return true
+		}
+
+		if token.Text == "#f" {
+			return false
+		}
+
+		return Symbol(token.Text)
 	}
-
-	if value == "#f" {
-		return false
-	}
-
-	num, err := strconv.ParseFloat(value, 64)
-	if err == nil {
-		return Number(num)
-	}
-
-	return Symbol(value)
 }
 
 func Eval(exp Expression, env *Scope) (result Expression, err error) {
