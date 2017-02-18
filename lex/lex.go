@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"unicode/utf8"
 	"unicode"
+	"io"
 )
 
 type Token struct {
@@ -23,6 +24,8 @@ const (
 	NumberLiteral
 	Symbol
 )
+
+const operators = "+-*/=<>%"
 
 func (t Token) String() string {
 	switch t.Type {
@@ -50,6 +53,7 @@ func (t Token) String() string {
 type stateFn func(*Scanner) stateFn
 
 type Scanner struct {
+	reader io.ByteReader
 	tokens chan Token
 	state  stateFn
 	input  string
@@ -86,14 +90,23 @@ func (l *Scanner) emitToken(t Type) {
 // next returns the next rune in the input.
 func (l *Scanner) next() rune {
 
-	if int(l.pos) < len(l.input) {
-		r, w := utf8.DecodeRuneInString(l.input[l.pos:])
-		l.width = w
-		l.pos += l.width
-		return r
+	if int(l.pos) == len(l.input) {
+		l.width = 0
+		return eof
 	}
 
-	return eof
+	r, w := utf8.DecodeRuneInString(l.input[l.pos:])
+	l.width = w
+	l.pos += l.width
+	return r
+
+
+}
+
+func (l *Scanner) peek() rune {
+	next := l.next()
+	l.backup()
+	return next
 }
 
 // next returns the next rune in the input.
@@ -101,35 +114,44 @@ func (l *Scanner) backup() {
 	l.pos -= l.width
 }
 
+func (l *Scanner) ignore() {
+	l.start = l.pos
+}
+
 func start(l *Scanner) scanFn {
 
-	switch l.next() {
+	r := l.next()
+	switch {
 
-	case eof:
+	case r == eof:
 		close(l.tokens)
 		return nil
 
-	case '\n':
+	case r == '\n':
 		l.emitToken(NewLine)
 		return start
 
-	case ' ', '\t':
+	case r == ' ', r == '\t':
 		return lexSpace
 
-	case '(':
+	case r == '(':
 		l.emitToken(OpenParen)
 		return start
 
-	case ')':
+	case r == ')':
 		l.emitToken(CloseParen)
 		return start
 
 	// skip comments
-	case ';':
+	case r == ';':
 		return lexComment
 
-	case '"':
+	case r == '"':
+		l.ignore()
 		return lexString
+
+	case unicode.IsNumber(r):
+		return lexNumber
 
 	default:
 		return lexSymbol
@@ -153,15 +175,48 @@ func lexString(l *Scanner) scanFn {
 
 func lexSymbol(l *Scanner) scanFn {
 
-	r := l.next()
+	r := l.peek()
 	switch {
-	case r == eof, r == '\n', r == ' ':
-		l.backup()
+
+	case r == eof:
+		l.emitToken(EOF)
+		return start
+
+	case !(unicode.IsLetter(r) || unicode.IsNumber(r) || r == '-'):
 		l.emitToken(Symbol)
 		return start
 
-	case unicode.IsLetter(r) || unicode.IsNumber(r):
+	default:
+		l.next()
 		return lexSymbol
+	}
+}
+
+func lexNumber(l *Scanner) scanFn {
+	r := l.peek()
+
+	switch {
+	case unicode.IsNumber(r):
+		l.next()
+		return lexNumber
+
+	case r == '.':
+		l.next()
+		return lexDigitsOnly
+
+	default:
+		l.emitToken(NumberLiteral)
+		return start
+	}
+}
+
+func lexDigitsOnly(l *Scanner) scanFn {
+	r := l.peek()
+
+	switch {
+	case unicode.IsNumber(r):
+		l.next()
+		return lexDigitsOnly
 
 	default:
 		return start
@@ -169,22 +224,25 @@ func lexSymbol(l *Scanner) scanFn {
 }
 
 func lexComment(l *Scanner) scanFn {
-
 	for {
-		next := l.next()
+		next := l.peek()
 		if next == '\n' || next == eof {
 			break
 		}
+		l.next()
 	}
 
-	l.backup()
 	l.emitToken(Comment)
 	return start
 }
 
 func lexSpace(l *Scanner) scanFn {
-	for unicode.IsSpace(l.next()) {}
-	l.backup()
+
+	for unicode.IsSpace(l.peek()) {
+		l.next()
+	}
+
+	l.ignore()
 	return start
 }
 

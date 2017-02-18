@@ -27,11 +27,12 @@ type Scope struct {
 
 func Parse(program string) (Expression, error) {
 	// add 'begin' so it evaluates all expressions
-	tokens := tokenize("(begin " + program + ")")
+	tokens := tokenize(program)
 	return readFromTokens(tokens)
 }
 
 func tokenize(program string) *[]lex.Token {
+	fmt.Println(program)
 	scanner := lex.NewScanner(program)
 	return lex.Scan(scanner)
 }
@@ -368,8 +369,8 @@ func main() {
 	scope := NewEnv()
 
 	// load the standard library
-	program, _ := ioutil.ReadFile("stdlib.lisp")
-	Run(string(program), scope)
+	//program, _ := ioutil.ReadFile("stdlib.lisp")
+	//Run(string(program), scope)
 
 	// evaluate any files provided
 	for _, file := range os.Args[1:] {
