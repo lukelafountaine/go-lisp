@@ -9,6 +9,7 @@ import (
 )
 
 type Token struct {
+	Line int
 	Type Type
 	Text string
 }
@@ -83,7 +84,7 @@ func (l *Scanner) emitToken(t Type) {
 	if t == NewLine {
 		l.line += 1
 	}
-	l.tokens <- Token{t, l.input[l.start:l.pos]}
+	l.tokens <- Token{l.line, t, l.input[l.start:l.pos]}
 	l.start = l.pos
 	l.width = 0
 }
@@ -242,7 +243,11 @@ func lexComment(l *Scanner) scanFn {
 	
 	for {
 		next := l.peek()
-		if next == '\n' || next == eof {
+		if next == '\n' {
+			l.emitToken(NewLine)
+			break
+		}
+		if next == eof {
 			break
 		}
 		l.next()

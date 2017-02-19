@@ -49,29 +49,30 @@ func readFromTokens(tokens *[]lex.Token) (Expression, error) {
 
 	case lex.OpenParen:
 
-		L := make([]Expression, 0)
+		lst := make([]Expression, 0)
 
 		for len(*tokens) > 0 && (*tokens)[0].Type != lex.CloseParen {
 
+			token = (*tokens)[0]
 			i, err := readFromTokens(tokens)
 
 			if err != nil {
-				return L, err
+				return lst, err
 			} else if i != "" {
-				L = append(L, i)
+				lst = append(lst, i)
 			}
 		}
 
 		if len(*tokens) == 0 {
-			return nil, errors.New("Syntax Error: Missing closing parenthesis")
+			return nil, errors.New(fmt.Sprintf("Syntax Error: Line %d: Missing closing parenthesis", token.Line))
 		}
 
 		// pop off the closing paren
 		*tokens = (*tokens)[1:]
-		return L, nil
+		return lst, nil
 
 	case lex.CloseParen:
-		return nil, errors.New("Syntax Error: Unexpected ')")
+		return nil, errors.New(fmt.Sprintf("Syntax Error: Line %d: Unexpected ')", token.Line))
 
 	default:
 		return atom(token), nil
