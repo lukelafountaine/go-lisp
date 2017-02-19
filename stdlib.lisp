@@ -83,9 +83,12 @@
             (cons a (range (+ a 1) b)))))
 
     (define fib (lambda (n)
-        (if (< n 2)
-            1
-            (+ (fib (- n 1)) (fib (- n 2))))))
+        (begin
+            (define helper (lambda (prev curr num)
+                (if (< num 1)
+                    curr
+                    (helper curr (+ prev curr) (- num 1)))))
+            (helper 0 1 n))))
 
     (define fact (lambda (x)
         (if (= x 0)

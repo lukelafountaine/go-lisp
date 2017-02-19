@@ -1,10 +1,24 @@
-package main
+package builtins
 
 import (
 	"fmt"
 	"errors"
 	"reflect"
 )
+
+// types
+type Expression interface{}
+type Symbol string
+type String string
+type Number float64
+type Function struct {
+	params, body Expression
+	env          *Scope
+}
+type Scope struct {
+	symbols map[Symbol]Expression
+	outer   *Scope
+}
 
 // type check for functions that expect arguments of type Number
 func numberType(f func(...Expression) Expression) func(...Expression) (Expression, error) {
