@@ -26,13 +26,11 @@ type Scope struct {
 }
 
 func Parse(program string) (Expression, error) {
-	// add 'begin' so it evaluates all expressions
 	tokens := tokenize(program)
 	return readFromTokens(tokens)
 }
 
 func tokenize(program string) *[]lex.Token {
-	fmt.Println(program)
 	scanner := lex.NewScanner(program)
 	return lex.Scan(scanner)
 }
@@ -83,6 +81,10 @@ func readFromTokens(tokens *[]lex.Token) (Expression, error) {
 func atom(token lex.Token) interface{} {
 
 	switch token.Type {
+
+	case lex.StringLiteral:
+		return String(token.Text)
+
 	case lex.NumberLiteral:
 		num, err := strconv.ParseFloat(token.Text, 64)
 		if err == nil {
@@ -369,8 +371,8 @@ func main() {
 	scope := NewEnv()
 
 	// load the standard library
-	//program, _ := ioutil.ReadFile("stdlib.lisp")
-	//Run(string(program), scope)
+	program, _ := ioutil.ReadFile("stdlib.lisp")
+	Run(string(program), scope)
 
 	// evaluate any files provided
 	for _, file := range os.Args[1:] {
