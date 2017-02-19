@@ -239,6 +239,7 @@ func lexDigitsOnly(l *Scanner) scanFn {
 }
 
 func lexComment(l *Scanner) scanFn {
+	
 	for {
 		next := l.peek()
 		if next == '\n' || next == eof {
@@ -271,7 +272,11 @@ func Scan(l *Scanner) *[]Token {
 
 	tokens := make([]Token, 0)
 	for token := range l.tokens {
-		if token.Type != NewLine {
+		switch token.Type {
+
+		case NewLine, Comment:
+
+		default:
 			tokens = append(tokens, token)
 		}
 	}
