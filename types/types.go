@@ -1,8 +1,8 @@
-package builtins
+package types
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 	"reflect"
 )
 
@@ -12,18 +12,18 @@ type Symbol string
 type String string
 type Number float64
 type Function struct {
-	params, body Expression
-	env          *Scope
+	Params, Body Expression
+	Env          *Scope
 }
 type Scope struct {
-	symbols map[Symbol]Expression
-	outer   *Scope
+	Symbols map[Symbol]Expression
+	Outer   *Scope
 }
 
 // type check for functions that expect arguments of type Number
 func numberType(f func(...Expression) Expression) func(...Expression) (Expression, error) {
 
-	return func(args...Expression) (Expression, error) {
+	return func(args ...Expression) (Expression, error) {
 		for _, arg := range args {
 			if _, ok := arg.(Number); !ok {
 				return nil, errors.New(fmt.Sprintf("Type Error: Recieved %T, Expected Number", arg))
@@ -36,7 +36,7 @@ func numberType(f func(...Expression) Expression) func(...Expression) (Expressio
 // type check for functions that expect arguments of type Boolean
 func boolType(f func(...Expression) Expression) func(...Expression) (Expression, error) {
 
-	return func(args...Expression) (Expression, error) {
+	return func(args ...Expression) (Expression, error) {
 		for _, arg := range args {
 			if _, ok := arg.(bool); !ok {
 				return nil, errors.New(fmt.Sprintf("Type Error: Recieved %T, Expected Boolean", arg))
@@ -46,7 +46,7 @@ func boolType(f func(...Expression) Expression) func(...Expression) (Expression,
 	}
 }
 
-func add(args... Expression) Expression {
+func add(args ...Expression) Expression {
 
 	initial := args[0].(Number)
 	for _, num := range args[1:] {
@@ -56,7 +56,7 @@ func add(args... Expression) Expression {
 	return initial
 }
 
-func sub(args... Expression) Expression {
+func sub(args ...Expression) Expression {
 
 	initial := args[0].(Number)
 	for _, num := range args[1:] {
@@ -66,7 +66,7 @@ func sub(args... Expression) Expression {
 	return initial
 }
 
-func mult(args... Expression) Expression {
+func mult(args ...Expression) Expression {
 
 	initial := args[0].(Number)
 	for _, num := range args[1:] {
@@ -76,7 +76,7 @@ func mult(args... Expression) Expression {
 	return initial
 }
 
-func div(args... Expression) Expression {
+func div(args ...Expression) Expression {
 
 	initial := args[0].(Number)
 	for _, num := range args[1:] {
@@ -86,46 +86,46 @@ func div(args... Expression) Expression {
 	return initial
 }
 
-func mod(args... Expression) Expression {
+func mod(args ...Expression) Expression {
 	return Number(int(args[0].(Number) / 1) % int(args[1].(Number) / 1))
 }
 
-func lt(args... Expression) Expression {
+func lt(args ...Expression) Expression {
 	return args[0].(Number) < args[1].(Number)
 }
 
-func gt(args... Expression) Expression {
+func gt(args ...Expression) Expression {
 	return args[0].(Number) > args[1].(Number)
 }
 
-func equals(args... Expression) Expression {
+func equals(args ...Expression) Expression {
 	if len(args) < 2 {
 		return true
 	}
 	return reflect.DeepEqual(args[0], args[1])
 }
 
-func and(args... Expression) Expression {
+func and(args ...Expression) Expression {
 	return args[0].(bool) && args[1].(bool)
 }
 
-func or(args... Expression) Expression {
+func or(args ...Expression) Expression {
 	return args[0].(bool) || args[1].(bool)
 }
 
-func not(args... Expression) Expression {
+func not(args ...Expression) Expression {
 	return !args[0].(bool)
 }
 
-func car(args...Expression) Expression {
+func car(args ...Expression) Expression {
 	return args[0].([]Expression)[0]
 }
 
-func cdr(args...Expression) Expression {
+func cdr(args ...Expression) Expression {
 	return args[0].([]Expression)[1:]
 }
 
-func cons(args...Expression) Expression {
+func cons(args ...Expression) Expression {
 	first := args[0]
 
 	switch rest := args[1].(type) {
@@ -140,7 +140,7 @@ func cons(args...Expression) Expression {
 	}
 }
 
-func list(args...Expression) Expression {
+func list(args ...Expression) Expression {
 	result := make([]Expression, 0)
 	for _, arg := range args {
 		result = append(result, arg)
@@ -152,21 +152,21 @@ func list(args...Expression) Expression {
 func NewEnv() *Scope {
 	env := Scope{
 		map[Symbol]Expression{
-			"+" : numberType(add),
-			"-" : numberType(sub),
-			"*" : numberType(mult),
-			"/" : numberType(div),
-			"%" : numberType(mod),
-			"<" : numberType(lt),
-			">" : numberType(gt),
-			"=": equals,
-			"and" : boolType(and),
-			"or" : boolType(or),
-			"not" : boolType(not),
-			"car": car,
-			"cdr" : cdr,
-			"cons" : cons,
-			"list" : list,
+			"+":    numberType(add),
+			"-":    numberType(sub),
+			"*":    numberType(mult),
+			"/":    numberType(div),
+			"%":    numberType(mod),
+			"<":    numberType(lt),
+			">":    numberType(gt),
+			"=":    equals,
+			"and":  boolType(and),
+			"or":   boolType(or),
+			"not":  boolType(not),
+			"car":  car,
+			"cdr":  cdr,
+			"cons": cons,
+			"list": list,
 		},
 		nil,
 	}
