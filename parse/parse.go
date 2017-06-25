@@ -1,12 +1,12 @@
 package parse
 
 import (
-	"strconv"
 	"errors"
 	"fmt"
+	"strconv"
 
-	"github.com/lukelafountaine/go-lisp/types"
 	"github.com/lukelafountaine/go-lisp/scan"
+	"github.com/lukelafountaine/go-lisp/types"
 )
 
 func Parse(program string) (types.Expression, error) {

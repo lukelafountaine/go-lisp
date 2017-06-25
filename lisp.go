@@ -6,9 +6,9 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/lukelafountaine/go-lisp/types"
-	"github.com/lukelafountaine/go-lisp/parse"
 	"github.com/lukelafountaine/go-lisp/eval"
+	"github.com/lukelafountaine/go-lisp/parse"
+	"github.com/lukelafountaine/go-lisp/types"
 )
 
 func Run(program string, scope *types.Scope) {

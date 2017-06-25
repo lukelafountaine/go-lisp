@@ -2,10 +2,10 @@ package lex
 
 import (
 	"fmt"
-	"unicode/utf8"
-	"unicode"
 	"io"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 type Token struct {
@@ -17,7 +17,7 @@ type Token struct {
 type Type int
 
 const (
-	EOF Type = iota-1
+	EOF Type = iota - 1
 	Comment
 	OpenParen
 	CloseParen
@@ -61,7 +61,7 @@ type Scanner struct {
 	input  string
 	line   int
 	start  int
-	width int
+	width  int
 	pos    int
 }
 
@@ -69,11 +69,11 @@ type scanFn func(*Scanner) scanFn
 
 func NewScanner(input string) *Scanner {
 	return &Scanner{
-		tokens : make(chan Token, 0),
-		input : input,
-		line : 0,
-		start : 0,
-		pos : 0,
+		tokens: make(chan Token, 0),
+		input:  input,
+		line:   0,
+		start:  0,
+		pos:    0,
 	}
 }
 
@@ -240,7 +240,7 @@ func lexDigitsOnly(l *Scanner) scanFn {
 }
 
 func lexComment(l *Scanner) scanFn {
-	
+
 	for {
 		next := l.peek()
 		if next == '\n' {
