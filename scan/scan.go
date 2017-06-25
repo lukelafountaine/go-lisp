@@ -1,7 +1,6 @@
 package scan
 
 import (
-	"fmt"
 	"io"
 	"strings"
 	"unicode"
@@ -28,29 +27,6 @@ const (
 )
 
 const operators = "+-*/=<>%"
-
-func (t Token) String() string {
-	switch t.Type {
-
-	case EOF:
-		return "<EOF>"
-
-	case NewLine:
-		return "<NewLine>"
-
-	case OpenParen:
-		return "<Open Paren>"
-
-	case CloseParen:
-		return "<Close Paren>"
-
-	case Comment, StringLiteral, Symbol, NumberLiteral:
-		return fmt.Sprintf("<%s: %s>", t.Type, t.Text)
-
-	default:
-		return "Dont know this type"
-	}
-}
 
 type Scanner struct {
 	reader io.ByteReader
